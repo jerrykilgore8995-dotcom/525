@@ -82,3 +82,41 @@ python3 spice/characterize.py --output retry-evidence --timeout 60 --retry-from 
 ```
 
 Full-control characterization, nonlinear transformer validation, op-amp and FET parameter measurements, and sustained high-drive cases remain open. The VST3 fit follows the reference-validation gates described in the handoff.
+
+## Loaded response, attack and recovery verification
+
+The [response and timing workflow](../.github/workflows/vintage-verification.yml) archives each executable deck, ngspice log, raw trace, summary CSV and model hashes. These are vintage 525C fixture results at ±15 V, IN 90%, OUT 75%, Ceiling 16 and a 2520 detector. Audio stages use either the discrete 2520 or JE-990. The `complete` CSV status means the solver produced a usable trace for the test, with any censored recovery reported separately.
+
+| Check | Completed locally | Conditions |
+| --- | ---: | --- |
+| AC magnitude, phase and group delay | 144/144 | C, L and OFF, D-S both positions, both amplifier pairings, 50/150/600 Ω source and 600 Ω/2 kΩ/10 kΩ/20 kΩ load. Sweep is 5 Hz–200 kHz with 160 points per decade. |
+| Burst attack | 16/16 | C and L at 1 and 10 kHz, both pairings, 150 Ω source and 10 kΩ load, D-S off, release 00, 0.25 and 0.125 µs maximum solver steps. |
+| Burst recovery | 16/16 | C and L at 1 kHz, both pairings, 150 Ω source and 10 kΩ load, D-S off, all four release states, 2.5 s observed recovery. |
+| Output transformer coupling sensitivity | 24/24 | C and OFF, both amplifier pairings, 150 Ω source, 600 Ω/10 kΩ load, D-S off. Individual test decks change only the output transformer coupling. |
+
+The loaded AC sweep normalizes magnitude to 1 kHz for the frequency-response check and retains the absolute gain, unwrapped output phase, group delay and A3 detector transfer. Twenty-four of 144 rows land within the reissue guide's nominal ±0.5 dB from 20 Hz to 40 kHz. Those rows all use OFF into 10 kΩ or 20 kΩ. The vintage and reissue fixtures and factory measurement conditions still need reconciliation. The result is a screening comparison. [API 525 user guide](https://apiaudio.com/docs/manuals/525_user_2020-12-15.pdf)
+
+With 2520 audio stages and a 150 Ω source in Compress, the response at 20 Hz is −1.30 dB into 10 kΩ and −1.24 dB into 600 Ω. At 40 kHz it is −0.21 and −13.64 dB, respectively. With D-S enabled and the 10 kΩ load, the A3 response increases by 2.04 dB at 100 Hz and 7.91 dB at 5 kHz relative to D-S off. These are small-signal transfer results.
+
+| Output transformer coupling | Compress 20 Hz into 600 Ω | Compress 40 kHz into 600 Ω | OFF 40 kHz into 600 Ω |
+| --- | ---: | ---: | ---: |
+| 0.9997, reference estimate | −1.24 dB | −13.64 dB | −13.70 dB |
+| 0.99997, diagnostic | −1.29 dB | −1.03 dB | −1.09 dB |
+| 0.99999, diagnostic | −1.29 dB | −0.31 dB | −0.37 dB |
+
+The coupling test localizes the large high-frequency load sensitivity to the assumed output magnetics. It leaves the Compress low-frequency deficit essentially intact. The reference retains 0.9997 pending measured leakage, winding capacitance, ratio and loading. The diagnostic coupling values do not establish transformer accuracy.
+
+The burst raises the source from −30 to +4 dBu at a carrier zero crossing. Attack uses a 20 ms burst, gate crossings relative to the pre-burst and late-burst medians and a whole-cycle A1 gain estimate derived from A1+ and A1 output. At 10 kHz with 2520 throughout, the 10–90% **gate** intervals are 18.93 µs in Compress and 20.72 µs in Limit at the finer step. Across all eight pairing/mode/carrier combinations, halving the maximum step changes the measured 10–90% gate interval by less than 0.007 µs. At 1 kHz, Compress reaches 90% gate excursion after roughly 652 µs while Limit does so after 46 µs. These are first crossings with control ripple and overshoot present. The A1 gain envelope has one-carrier-cycle resolution (1 ms at 1 kHz, 100 µs at 10 kHz). The test does not resolve a 15 µs audio-gain attack or establish the manufacturer's attack criterion.
+
+Recovery uses a 60 ms burst and reports time to half the A1 gain reduction or to 1 dB remaining, requiring five consecutive cycles over each threshold. At 1 kHz, 2520 Compress recovers halfway in approximately 161/366/1038/1261 ms for release positions 00/10/01/11. It reaches 1 dB remaining after 508/2382 ms for 00/10. The latter two switch positions in both modes and pairings are right-censored at 2.5 s for the 1 dB criterion. The test verifies release-switch ordering and records recovery envelopes. Complete slow recovery and the factory release metric still need measurement.
+
+Run from the repository root with Python, NumPy and ngspice 44.2:
+
+```sh
+OPENBLAS_NUM_THREADS=1 python3 spice/verify.py ac --output evidence/ac
+OPENBLAS_NUM_THREADS=1 python3 spice/verify.py attack --output evidence/attack
+OPENBLAS_NUM_THREADS=1 python3 spice/verify.py release --output evidence/release --timeout 150
+OPENBLAS_NUM_THREADS=1 python3 spice/verify.py magnetics --output evidence/magnetics
+```
+
+Run an archived deck from its artifact's top-level directory with `ngspice -b <case-directory>/fixture.cir`. The deck writes a fresh trace to its own case directory.

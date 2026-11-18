@@ -55,8 +55,12 @@ def deck(args):
     for deck_name in ("a", "b"):
         yield f"print @r.x525.rs5{deck_name}{contact_mark}[resistance]"
     if args.ac:
-        yield "ac dec 48 20 40000"
+        yield "ac dec 160 5 200000"
         yield "print vdb(oh) vp(oh)"
+        if args.ac_trace:
+            yield "set wr_singlescale"
+            yield "set wr_vecnames"
+            yield f"wrdata {args.ac_trace} vdb(oh) vp(oh) vdb(x525.a3_out) vp(x525.a3_out)"
     if args.transient:
         step = args.max_step or 1/(args.hz*500)
         start = args.seconds / 2
@@ -95,6 +99,7 @@ def main():
     parser.add_argument("--burst-start", type=float, default=.02)
     parser.add_argument("--burst-stop", type=float, default=.05)
     parser.add_argument("--ac", action="store_true")
+    parser.add_argument("--ac-trace", type=Path, help="Write raw AC traces to this path (without spaces)")
     parser.add_argument("--max-step", type=float, help="Maximum transient timestep in seconds")
     parser.add_argument("--diagnostic-tolerances", action="store_true",
                         help="Use relaxed tolerances for first-pass stability diagnostics")
@@ -112,6 +117,8 @@ def main():
         parser.error("--max-step must be positive")
     if args.trace is not None and (not args.transient or any(c.isspace() for c in str(args.trace))):
         parser.error("--trace requires --transient and a path without spaces")
+    if args.ac_trace is not None and (not args.ac or any(c.isspace() for c in str(args.ac_trace))):
+        parser.error("--ac-trace requires --ac and a path without spaces")
     print("\n".join(deck(args)))
 
 
