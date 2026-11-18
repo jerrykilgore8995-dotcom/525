@@ -4,7 +4,7 @@
 * Pots normalized positions. IN tracks signal into the detector input.
 .subckt COMP525C chassis out_hi out_lo edge4 in_hi in_low stereo_in defeat test lamp_hi lamp_lo vp_ext com vn_ext
 + params: inp=.5 outp=.75 ceiling_index=5 r1pos=0 r2pos=0 mode=0 ds=0
-+ gaintrim=.22 limittrim=.3 overridetrim=.5 metertrim=.5
++ gaintrim=.22 limittrim=.3 overridetrim=.5 metertrim=.5 detector_turns=.5
 .param rdopen=1e12 rdclosed=.02
 .func sw(on) {ternary_fcn(on,rdclosed,rdopen)}
 .func segment(total,p) {max(1u,total*p)}
@@ -121,7 +121,7 @@ R46 a3_fb_mid a3_fb_out 100k
 R71 a3_out a3_fb_out 1k
 R65 a3_plus in_low 3.9k
 XA3 a3_plus a3_minus a3_out pos_rail neg_rail com DETECTOR_DOA
-XT2 a3_out in_low t2_high in_low t2_low T525C_DETECTOR
+XT2 a3_out in_low t2_high in_low t2_low T525C_DETECTOR params: turns={detector_turns}
 * Detector, release override and meter rectifier.
 R76 t2_high release_rect_hi 2.7k
 C13 release_rect_hi in_low .1u

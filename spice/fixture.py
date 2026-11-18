@@ -11,6 +11,9 @@ MODELS = {
 }
 
 
+DETECTOR_TURNS = {"legacy": 0.5, "ap2623": 1.0}
+
+
 def deck(args):
     opamp = MODELS[args.opamp]
     detector = MODELS[args.detector_opamp or args.opamp]
@@ -42,6 +45,7 @@ def deck(args):
     yield "X525 0 oh ol pin4 ip 0 edge7 edge8 test aux0 aux0 p 0 n COMP525C"
     yield (f"+ inp={args.input} outp={args.output} ceiling_index={args.ceiling} "
            f"r1pos={args.release[0]} r2pos={args.release[1]} mode={mode} ds={args.deess}")
+    yield f"+ detector_turns={DETECTOR_TURNS[args.detector_transformer]}"
     yield ".options method=gear maxord=2"
     if args.diagnostic_tolerances:
         yield ".options reltol=1e-3 vntol=1e-6 chgtol=1e-12"
@@ -84,6 +88,8 @@ def main():
     parser.add_argument("--opamp", choices=tuple(MODELS), default="2520")
     parser.add_argument("--detector-opamp", choices=tuple(MODELS),
                         help="Override only the vintage detector amplifier for substitution diagnostics")
+    parser.add_argument("--detector-transformer", choices=tuple(DETECTOR_TURNS), default="legacy",
+                        help="Detector secondary turns per half, relative to the primary")
     parser.add_argument("--mode", choices=("C", "L", "OFF"), default="C")
     parser.add_argument("--input", type=float, default=.5)
     parser.add_argument("--output", type=float, default=.75)

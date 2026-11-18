@@ -34,8 +34,9 @@ def run_fixture(args, name, params, *, ac=False, coupling=None):
     raw = dest / ("ac.dat" if ac else "burst.dat")
     local_raw = raw.relative_to(args.output)
     flag = "--ac-trace" if ac else "--trace"
+    variant = getattr(args, "detector_transformer", "legacy")
     deck = subprocess.check_output(
-        ["python3", "fixture.py", *params, flag, str(local_raw)],
+        ["python3", "fixture.py", *params, "--detector-transformer", variant, flag, str(local_raw)],
         cwd=ROOT, text=True,
     )
     if coupling is not None:

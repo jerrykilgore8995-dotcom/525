@@ -140,3 +140,22 @@ g++ -O2 -std=c++17 dsp/measure_output_ceiling.cpp -o /tmp/measure-tap
 python3 spice/check_control_law.py evidence/control-ac/summary.csv evidence/control-ac/control-law.csv --dsp /tmp/measure-tap
 python3 spice/control_grid.py tone --pair 2520/2520 --mode C --ceilings 16 18 20 --output evidence/control-tone
 ```
+
+### Detector transformer ratio and unresolved gain law
+
+The [vintage drawing](https://www.sowter.co.uk/schematics/API%20525C.pdf) shows matching AP2623 lead colors on both transformers. T1's two secondary sections are in series. T2 has the series junction grounded for full-wave rectification. [API's transformer catalog](https://www.steampoweredradio.com/pdf/api/manuals/api%201972%20schematics.pdf) gives the AP2623 1:1 or series 1:2 connection and [Sowter's replacement listing](https://www.sowter.co.uk/acatalog/VINTAGE-COMPRESSOR-TRANSFORMERS-A-to-K.html) specifies a 1:1:1 winding ratio for both the 525 output and control amplifiers.
+
+The original provisional T2 card assumed 1:0.5:0.5. The fixture now supports a winding-ratio comparison using `--detector-transformer ap2623`. This holds the T2 primary, resistances, coupling and parasitics fixed and changes only the secondary inductances to equal the primary. The `legacy` default preserves the published SPICE traces and control calibration so the two runs can be compared. DCR, leakage, capacitance and core behavior still require independent data. The [detector comparison workflow](../.github/workflows/vintage-detector.yml) archives both versions with each audio amplifier and matched drive and attack stimuli.
+
+At IN 90%, OUT 75%, Ceiling 16, 150 Ω source and 10 kΩ load, the local 1 kHz all-2520 tests show a material change in steady-state gain reduction:
+
+| Test point | Legacy output | AP2623-ratio output |
+| --- | ---: | ---: |
+| C, −18 dBu source | −11.17 dBu | −14.82 dBu |
+| C, −6 dBu source | −7.41 dBu | −12.35 dBu |
+| L, −18 dBu source | −13.04 dBu | −17.51 dBu |
+| L, −6 dBu source | −11.42 dBu | −16.93 dBu |
+
+This is a comparison at fixed knobs and an identical rectifier and FET. The rate of rise in Compress is level dependent with either winding ratio. In the legacy 2 dB step sweep, the region from −18 to −16 dBu yields about 2.11:1, while the region from 0 to +2 dBu yields about 10.29:1. Some Limit cases continue drifting at the end of the 120 ms record, so do not interpret their slopes as settled. Both winding ratios can drive this particular FET card to cutoff, where A1 approaches unity gain and output slope returns to 1:1. A 2:1/20:1 pass across the rated range remains open pending revision-specific alignment and FET calibration. The historical factory procedure is indexed as [API 525C Docs.pdf, post 40](https://groupdiy.com/threads/api.44738/page-2#post-952903); direct access returned HTTP 403.
+
+The T1 600 Ω/10 kΩ response ratio at 1 kHz implies a small-signal output impedance of approximately `196 + j91 Ω` for both amplifier pairings at the same control settings. That real part follows from the T1 estimates (32 Ω primary reflected by the 1:2 turns ratio plus two 34 Ω secondaries). It exceeds the earlier reissue's 100 Ω or the 2020 guide's 75 Ω stated output impedance. The revision and test conditions matter. This comparison and the separate coupling sensitivity test both point to T1 as the next load-calibration target.
