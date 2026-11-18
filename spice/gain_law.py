@@ -23,7 +23,7 @@ def gain_curve(args, case):
     dest = args.output / name
     dest.mkdir(exist_ok=True)
     path = dest / "gain-law.dat"
-    end = len(LEVELS) * (HOLD_S + RAMP_S)
+    end = len(args.levels) * (HOLD_S + RAMP_S)
     params = ["--opamp", amp, "--detector-opamp", detector, "--mode", args.mode,
               "--detector-transformer", "ap2623", "--input", str(position), "--ceiling", str(mark//2),
               "--limit-trim", str(trim), "--deess", str(deess), "--seconds", str(end),
@@ -32,12 +32,13 @@ def gain_curve(args, case):
     deck = []
     for line in original.splitlines():
         if line.startswith("VIN "):
-            line = source_text(LEVELS)
+            line = source_text(args.levels)
         if line.startswith("fourier "):
             continue
         if line.startswith("tran "):
             deck.append("save " + " ".join(f"v({node})" for node in COLUMNS))
         if line.startswith("wrdata "):
+            deck.append("set numdgt=16")
             line = f"wrdata {path.relative_to(args.output)} " + " ".join(f"v({node})" for node in COLUMNS)
         deck.append(line)
     status, data = solve_deck(args, dest, path, "\n".join(deck) + "\n", len(COLUMNS) + 1)
@@ -45,12 +46,21 @@ def gain_curve(args, case):
               "ceiling_mark": mark, "limit_trim": trim, "deess": deess, "solver": status}
     if data is None:
         return [common]
+    return summarize_curve(common, data, end, args.levels)
+
+
+def summarize_curve(common, data, end, levels):
     times = data[:, 0]
-    if times[-1] < end - 1e-7 or np.any(np.diff(times) <= 0):
+    if times[-1] < end - 1e-7 or np.any(np.diff(times) < 0):
         return [{**common, "solver": "incomplete_trace"}]
+    # Earlier ngspice files can round adjacent sample times to the same value.
+    # Keep the last sample at a rounded time for interpolation.
+    keep = np.r_[np.diff(times) > 0, True]
+    if not keep.all():
+        times, data = times[keep], data[keep]
     rows = []
     quiet_gain = None
-    for index, level in enumerate(LEVELS):
+    for index, level in enumerate(levels):
         onset = index * (HOLD_S + RAMP_S)
         near = measure_window(times, data[:, 1:], onset + .260)
         late = measure_window(times, data[:, 1:], onset + .310)
@@ -93,19 +103,23 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pair", choices=PAIRS, required=True)
     parser.add_argument("--mode", choices=MODES, required=True)
-    parser.add_argument("--subset", choices=("controls", "trim", "quick"), default="controls")
+    parser.add_argument("--subset", choices=("controls", "trim", "quick", "alignment"), default="controls")
     parser.add_argument("--shard", type=int, choices=(0, 1), help="Select half of the matrix")
     parser.add_argument("--output", type=lambda p: Path(p).resolve(), required=True)
     parser.add_argument("--ngspice", default="ngspice")
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--timeout", type=int, default=240)
+    parser.add_argument("--levels", type=int, nargs="+", default=LEVELS)
     parser.add_argument("--step", type=float, default=1e-5)
     args = parser.parse_args()
+    if len(args.levels) < 3 or list(args.levels) != sorted(set(args.levels)):
+        parser.error("--levels requires at least three strictly increasing dBu values")
     archive_models(args)
     candidates = {
         "controls": [(p,m,.3,d) for (p,m),d in product(POINTS,(0,1))],
         "trim": [(.5,m,t,0) for m,t in product((10,16),(.1,.3,.6,.9))],
         "quick": [(.5, 16, .3, 0), (.9, 16, .3, 0)],
+        "alignment": [(.5, 16, .3, 0), (.5, 16, .6, 0), (.5, 16, .9, 0), (.45, 16, .3, 0)],
     }[args.subset]
     if args.shard is not None:
         candidates = candidates[args.shard::2]
@@ -119,6 +133,11 @@ def main():
     eligible = [r for r in slopes if r["eligible"]]
     print(f"{args.pair} {args.mode}: {good}/{len(curves)} curves; "
           f"{sum(r['within_10pct'] for r in eligible)}/{len(eligible)} eligible windows within 10%")
+    positive = [r for r in eligible if r["ratio"] is not None]
+    if positive:
+        best = min(positive, key=lambda r: abs(r["ratio"] / r["nominal_ratio"] - 1))
+        print(f'{best["id"]}: nearest eligible ratio {best["ratio"]:.4f}:1 '
+              f'from {best["start_dbu"]} to {best["end_dbu"]} dBu')
     if good != len(curves):
         for curve in curves:
             if curve[0]["solver"] != "complete":

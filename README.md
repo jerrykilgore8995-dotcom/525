@@ -49,3 +49,13 @@ A focused driven-transformer comparison at −18 dBu in Compress into 600 Ω giv
 [Audio timing measurements and raw decks](https://github.com/jerrykilgore8995-dotcom/525/actions/runs/44251661993) · [Driven gain, phase and harmonic measurements](https://github.com/jerrykilgore8995-dotcom/525/actions/runs/44251068207)
 
 The driven sweep returned 160 usable waveforms. All 80 Compress cases were within the 0.1 dB late-window drift criterion. The 20 Limit rows that exceeded it remain flagged. A local follow-up of all 20 flagged Limit cases across both amplifier pairings and loads used a total tone duration of 0.8 s at 100 Hz and 0.32 s at 5/10 kHz. All 20 met the drift criterion with less than 0.006 dB of output drift over the same analysis window.
+
+## Gain slopes and THD calibration
+
+The measured SPICE gain-recovery envelopes are accepted as the plug-in reference. The gain-law fixture holds each 1 kHz drive level for 320 ms with a 20 ms transition, measures the fundamental near the end and reports the late output drift. The slope screen fits three successive points over at least 4 dB. It requires at least 1 dB of gain reduction, A1 above the cutoff exclusion and a maximum 0.10 dB fit residual. Ratios are input dB change divided by output dB change. The original reference circuit and the provisional 1:1:1 AP2623 detector remain available in the fixture.
+
+At IN 50%, OUT 75%, Ceiling 16, D-S off, 150 Ω source and 10 kΩ load, all-2520 Compress gives 2.04:1 from −20 to −16 dBu, with a 0.039 dB maximum fit residual. The same 4 dB window at IN 90% measures 3.69:1. The resulting gain law depends on the controls and level. The narrow successful span does not establish a global 2:1 match.
+
+The compiled [IN/CEILING detector control](dsp/DetectorDrive.h) matches the SPICE ratio from A1 output to A3 input within 0.007 dB (2520/2520) and 0.004 dB (990/2520). Both mode-switch positions and all eleven Ceiling detents were exercised at eight IN positions in each mode. Relative error is evaluated above a (10^{-5}) absolute gain floor. The output also includes an absolute-error check at endpoints.
+
+The [THD calibration CSV](reference/525c-thd-reference.csv) records the 2520/2520 Compress fixture with the AP2623-ratio detector, original output model, IN 90%, OUT 75%, Ceiling 16, D-S off, release 00, 150 Ω source and 10 kΩ load. Tone lengths are 800 ms at 100 Hz and 320 ms otherwise. The final twelve coherent periods were used for K2–K20. The `detail=2` rows halve the maximum timestep at 1 and 10 kHz and −18 dBu. THD changes by 0.24% and 0.10% relative respectively. Harmonics in this analog simulation above the plug-in's Nyquist limit are outside the direct host harmonic comparison. The +4 dBu condition is near FET cutoff at these controls.
