@@ -51,14 +51,14 @@ def phase_deg(x):
     return math.degrees(np.angle(x))
 
 
-def tonal_summary(data):
+def tonal_summary(data, *, seconds=SECONDS, tone_hz=TONE_HZ):
     times = data[:, 0]
-    if times[0] > 1e-9 or times[-1] < SECONDS - 1e-9 or np.any(np.diff(times) <= 0):
+    if times[0] > 1e-9 or times[-1] < seconds - 1e-9 or np.any(np.diff(times) <= 0):
         return {"solver": "incomplete_burst"}
     cycles = 12
     points = 256
-    sample_rate = points * TONE_HZ
-    t = SECONDS - cycles / TONE_HZ + np.arange(cycles * points) / sample_rate
+    sample_rate = points * tone_hz
+    t = seconds - cycles / tone_hz + np.arange(cycles * points) / sample_rate
     columns = (1, 2, 3, 4, 5, 8)
     samples = np.array([np.interp(t, times, data[:, col]) for col in columns])
     phases = np.fft.rfft(samples.reshape(len(columns), cycles, points), axis=2) * (2 / points)
