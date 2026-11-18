@@ -76,13 +76,15 @@ python3 spice/gain_law.py --pair 2520/2520 --mode L --subset alignment --levels 
 
 The [Mod control design](GUI.md#mod-ratios) adds a toggle outside the faceplate and makes the Compress ratio label cycle 2:1, 4:1, 8:1 and 12:1. The [native mapping](dsp/CompressRatio.h) identifies the reference circuit for each setting. The fixture changes R44 in the A3 negative-feedback return in Compress. Existing Limit and OFF use the stock resistance. With the default resistance, the old and new C, L and OFF AC trace files compared byte for byte.
 
-The [measured calibration points](reference/525c-mod-ratios.csv) use ngspice 44.2, the 2520 audio and detector models, the AP2623-ratio T2 candidate, provisional T1, IN 50%, OUT 75%, Ceiling 16, D-S off, release 00, 150 Ω source and 10 kΩ load. Each slope is a fit over −20, −18 and −16 dBu at 1 kHz, after stepped plateaus of 320 ms with a 20 ms ramp, at a 5 µs maximum solver step.
+The [measured calibration points](reference/525c-mod-ratios.csv) use ngspice 44.2, both audio amplifier pairings with a 2520 detector, the AP2623-ratio T2 candidate, provisional T1, IN 50%, OUT 75%, Ceiling 16, D-S off, release 00, 150 Ω source and 10 kΩ load. Each slope is a fit over −20, −18 and −16 dBu at 1 kHz, after stepped plateaus of 320 ms with a 20 ms ramp, at a 5 µs maximum solver step.
 
-| Mod label | R44 | Fitted ratio |
-| --- | ---: | ---: |
-| 2:1 | 200 Ω | 2.04:1 |
-| 4:1 | 68 Ω | 4.15:1 |
-| 8:1 | 30 Ω | 8.17:1 |
-| 12:1 | 20 Ω | 11.73:1 |
+| Mod label | R44 | 2520 audio | JE-990 audio |
+| --- | ---: | ---: | ---: |
+| 2:1 | 200 Ω | 2.04:1 | 2.04:1 |
+| 4:1 | 68 Ω | 4.15:1 | 4.15:1 |
+| 8:1 | 30 Ω | 8.17:1 | 8.17:1 |
+| 12:1 | 20 Ω | 11.73:1 | 11.73:1 |
 
 The ratios are local slopes, with threshold and curvature changing along with R44. The [Mod characterization workflow](.github/workflows/vintage-ratio-mod.yml) measures the resulting curves across IN and Ceiling and records phase, distortion, attack and release for each ratio with both amplifier pairings. The Windows editor and the reduced compressor using these curves are still pending.
+
+The [8:1 harmonic measurements](reference/525c-mod-8-harmonics.csv) capture K2–K20 and fundamental phase. With all-2520, D-S off and −18 dBu, THD is 0.1111%, 0.01936%, 0.02174%, and 0.02424% at 100 Hz, 1 kHz, 5 kHz, and 10 kHz. These are analog bandwidth figures under the measured drive conditions. [Extended characterization results](https://github.com/jerrykilgore8995-dotcom/525/actions/runs/44256694480)
