@@ -120,7 +120,7 @@ six source levels from −30 to +24 dBu. The workflow can also run other
 amplifier and switch configurations. Reference rows include K2–K20 amplitude,
 phase, absolute output level, and late-window drift.
 
-The embedded data currently cover +18 dBu at 1 kHz, IN 90% and 100%, and
+The embedded data cover +18 dBu at 1 kHz on the 10% grid for IN 0–100% and
 OUT 10–100%. Build the sparse harmonic table with
 `python3 calibration/generate_pot_harmonics.py reference/harmonic-pots/*.csv`.
 Measured midpoint rows are held out from the table. OUT 0 is included in

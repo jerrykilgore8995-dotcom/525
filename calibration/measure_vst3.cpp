@@ -31,22 +31,22 @@ void set(Plugin& plugin, const juce::String& name, float value)
 }
 
 void render(Plugin& plugin, const vintage525::data::HarmonicPoint& point, std::ostream& out,
-            float input = -.1f, float output = .75f)
+            float input = -.1f, float output = .75f, int ceiling = 8, int release = 0, int deess = 0)
 {
     plugin.releaseResources();
     plugin.prepareToPlay(rate, blockSize);
     set(plugin, "Audio amplifier", static_cast<float>(point.amp));
     set(plugin, "Mod", 1);
     const auto limit = point.slot == 4;
-    set(plugin, "Mod ratio", limit ? 0 : static_cast<float>(point.slot) / 3);
-    set(plugin, "Mode", limit ? 1.f / 3 : 0);
+    set(plugin, "Mod ratio", point.slot >= 4 ? 0 : static_cast<float>(point.slot) / 3);
+    set(plugin, "Mode", point.slot == 5 ? 2.f / 3 : (limit ? 1.f / 3 : 0));
     const auto position = input >= 0 ? input : (limit ? .9f : .5f);
     set(plugin, "IN Threshold", position);
     set(plugin, "OUT Make-Up", output);
-    set(plugin, "Ceiling", .8f);
-    set(plugin, "Release 1", 0);
-    set(plugin, "Release 2", 0);
-    set(plugin, "D-S", 0);
+    set(plugin, "Ceiling", static_cast<float>(ceiling) / 10);
+    set(plugin, "Release 1", static_cast<float>(release & 1));
+    set(plugin, "Release 2", static_cast<float>((release >> 1) & 1));
+    set(plugin, "D-S", static_cast<float>(deess));
     constexpr int analysis = rate / 10, settle = rate * 3;
     const auto amplitude = std::pow(10.0, (point.level - fullScaleDbu) / 20);
     const auto omega = 2 * std::numbers::pi * point.hz / rate;
@@ -102,7 +102,7 @@ void render(Plugin& plugin, const vintage525::data::HarmonicPoint& point, std::o
         out << point.phaseDeg;
     out << ',' << phase << ',' << plugin.getLatencySamples() << ','
         << percentile(.5) << ',' << percentile(.95) << ',' << percentile(.99) << ',' << blockMillis.back()
-        << ',' << std::round(position*100) << ',' << std::round(output*100);
+        << ',' << std::round(position*100) << ',' << std::round(output*100) << ',' << ceiling << ',' << release << ',' << deess;
     for (int h = 2; h <= 20; ++h) {
         out << ',';
         if (h <= order)
@@ -201,7 +201,7 @@ int main(int argc, char** argv)
         if (auto stream = folder.getChildFile("vst3-measurements.csv").createOutputStream()) {
             std::ostringstream csv;
             csv << "amp,slot,hz,input_dbu,spice_thd_pct,vst3_thd_pct,relative_thd_error_pct,spice_gain_db,vst3_gain_db,"
-                   "spice_phase_deg,vst3_phase_deg,latency_samples,block_p50_ms,block_p95_ms,block_p99_ms,block_max_ms,input_pct,output_pct";
+                   "spice_phase_deg,vst3_phase_deg,latency_samples,block_p50_ms,block_p95_ms,block_p99_ms,block_max_ms,input_pct,output_pct,ceiling,release,deess";
             for (int h = 2; h <= 20; ++h)
                 csv << ",k" << h << "_dbc";
             csv << '\n';
@@ -211,7 +211,7 @@ int main(int argc, char** argv)
                 vintage525::data::HarmonicPoint spec{point.amp, point.slot, point.hz, point.level, 0, 0, 0, {}};
                 for (std::size_t h = 0; h < std::size(spec.magnitude); ++h)
                     spec.magnitude[h] = std::pow(10, point.dbc[h]/20);
-                render(*plugin, spec, csv, point.input/100.f, point.output/100.f);
+                render(*plugin, spec, csv, point.input/100.f, point.output/100.f, point.ceiling, point.release, point.deess);
             }
             for (int output = 0; output <= 100; output += 5) {
                 vintage525::data::HarmonicPoint holdout{0, 0, 1000, 18, 0, 0, 0, {}};

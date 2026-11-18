@@ -43,6 +43,10 @@ jobs:
         run: cmake --build build --config Release --target Measure525 --parallel 2
       - name: Measure the compiled bundle
         run: build/Measure525_artefacts/Release/Measure525.exe dist/525.vst3 measurements
+      - name: Compare pot anchors and independent holdouts
+        shell: bash
+        run: |
+          python calibration/compare_pot_harmonics.py measurements/vst3-measurements.csv reference/harmonic-pots/*.csv | tee measurements/pot-harmonic-parity.txt
       - uses: actions/upload-artifact@v4
         with:
           name: 525-binary-measurements
