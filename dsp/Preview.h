@@ -7,6 +7,7 @@
 #include <array>
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 namespace vintage525 {
 
@@ -38,13 +39,29 @@ public:
         const auto outCoefficients = OutputCeiling::calculate(next.output, next.ceiling, rate);
         harmonicOutputGain = outCoefficients.gain / (1-outCoefficients.highPole) * 21 * 1.96;
         const auto currentTap = detectorDrive(next.input, next.ceiling, slot == 4);
-        const auto referenceTap = detectorDrive(.5, 8, slot == 4);
+        const auto referenceInput = slot == 4 ? .9 : .5;
+        const auto referenceTap = detectorDrive(referenceInput, 8, slot == 4);
         baseline = 25.09;
         const auto shift = 20 * std::log10(std::max(1e-8, currentTap / referenceTap));
         const int availableAmp = hasGain(next.amp, slot) ? next.amp : 0;
-        for (std::size_t n = 0; n < gainTable.size(); ++n) {
-            const auto level = static_cast<double>(n) - 72;
-            gainTable[n] = std::clamp(curve(availableAmp, slot, level + shift), 0.0, baseline);
+        for (std::size_t band = 0; band < toneBands.size(); ++band) {
+            const auto hz = toneBands[band];
+            for (std::size_t n = 0; n < gainTable[band].size(); ++n) {
+                const auto level = static_cast<double>(n) - 72 + shift;
+                const auto base = curve(availableAmp, slot, referenceInput, level);
+                const auto [lo, hi] = harmonicBracket(hz, level);
+                auto delta = 0.0;
+                if (lo != nullptr) {
+                    const auto offset = [&](const auto& row) {
+                        return row.a1GainDb - curve(availableAmp, slot, referenceInput, row.level);
+                    };
+                    const auto weight = lo == hi ? 0 : (level-lo->level)/(hi->level-lo->level);
+                    const auto fade = std::clamp(1 - std::abs(level - std::clamp(level, lo->level, hi->level)) / 10,
+                                                  0.0, 1.0);
+                    delta = std::lerp(offset(*lo), offset(*hi), weight) * fade;
+                }
+                gainTable[band][n] = std::clamp(base + delta, 0.0, baseline);
+            }
         }
         const int releaseSlot = slot == 4 ? 0 : slot;
         constexpr std::array<double, 4> fallback{.1213, .5417, 1.8415, 2.2591};
@@ -67,8 +84,8 @@ public:
             const auto span = found == nullptr ? 15.0 : found->spanUs;
             attackCoefficients[i] = coefficient(span * 1e-6 / std::log(9.0));
         }
+        refreshFrequency(1000);
         refreshHarmonics(-18, 1000);
-        refreshRelease(1000);
     }
 
     float process(float input) noexcept
@@ -99,15 +116,18 @@ public:
         inputLow = x + low * (inputLow - x);
         const auto level = 22 + 20 * std::log10(std::max(peak, 1e-12));
         if (++controlsCounter >= 128) {
-            refreshRelease(frequency);
+            refreshFrequency(frequency);
             refreshHarmonics(level, frequency);
             controlsCounter = 0;
         }
         const auto boost = controls.deess ? 7.5 * std::abs(x-inputLow) / std::max(.00001, peak) : 0.0;
-        const auto index = std::clamp(level + boost + 72, 0.0, static_cast<double>(gainTable.size()-1));
+        const auto index = std::clamp(level + boost + 72, 0.0, static_cast<double>(gainTable.front().size()-1));
         const auto lower = static_cast<int>(index);
-        const auto upper = std::min(lower+1, static_cast<int>(gainTable.size()-1));
-        const auto target = gainTable[lower] + (gainTable[upper]-gainTable[lower])*(index-lower);
+        const auto upper = std::min(lower+1, static_cast<int>(gainTable.front().size()-1));
+        const auto atBand = [&](auto band) {
+            return std::lerp(gainTable[band][lower], gainTable[band][upper], index-lower);
+        };
+        const auto target = std::lerp(atBand(lowBand), atBand(highBand), bandBlend);
         if (target < gainDb) {
             const auto drive = std::clamp((level + 18) / 22, 0.0, 1.0);
             const auto coeff = attackCoefficients[0] + drive * (attackCoefficients[1] - attackCoefficients[0]);
@@ -157,7 +177,7 @@ private:
         return false;
     }
 
-    static double curve(int amp, int slot, double level)
+    static double curve(int amp, int slot, double referenceInput, double level)
     {
         const data::GainPoint* lo = nullptr;
         const data::GainPoint* hi = nullptr;
@@ -165,7 +185,7 @@ private:
         for (const auto& p : data::gain) {
             if (p.slot != slot || p.amp != amp)
                 continue;
-            const auto distance = std::abs(p.input-.5) + .1*std::abs(p.ceiling-8);
+            const auto distance = std::abs(p.input-referenceInput) + .1*std::abs(p.ceiling-8);
             if (distance > bestAnchor)
                 continue;
             if (distance < bestAnchor) {
@@ -186,11 +206,37 @@ private:
         return lo->gain + (hi->gain-lo->gain) * (level-lo->level)/(hi->level-lo->level);
     }
 
-    void refreshRelease(double hz) noexcept
+    void refreshFrequency(double hz) noexcept
     {
+        const auto high = std::lower_bound(toneBands.begin()+1, toneBands.end(), hz);
+        lowBand = static_cast<std::size_t>(high - toneBands.begin() - 1);
+        highBand = std::min(lowBand+1, toneBands.size()-1);
+        const auto lo = toneBands[lowBand];
+        const auto hi = toneBands[highBand];
+        bandBlend = lo == hi ? 0 : std::clamp(std::log(hz/lo)/std::log(double(hi)/lo), 0.0, 1.0);
         const auto f = std::clamp(std::log10(std::max(20.0, hz)/100), 0.0, 1.0);
         releaseCoeff = coefficient(releaseSeconds[0] + (releaseSeconds[1]-releaseSeconds[0])*f);
         peakDecay = coefficient(.0005);
+    }
+
+    std::pair<const data::HarmonicPoint*, const data::HarmonicPoint*>
+    harmonicBracket(int hz, double level) const noexcept
+    {
+        const data::HarmonicPoint* lo = nullptr;
+        const data::HarmonicPoint* hi = nullptr;
+        for (const auto& row : data::harmonics) {
+            if (row.amp != controls.amp || row.slot != slot || row.hz != hz)
+                continue;
+            if (row.level <= level && (lo == nullptr || row.level > lo->level))
+                lo = &row;
+            if (row.level >= level && (hi == nullptr || row.level < hi->level))
+                hi = &row;
+        }
+        if (lo == nullptr)
+            lo = hi;
+        if (hi == nullptr)
+            hi = lo;
+        return {lo, hi};
     }
 
     void refreshHarmonics(double level, double hz) noexcept
@@ -198,41 +244,22 @@ private:
         magnitude.fill(0);
         if (controls.mode > 1)
             return;
-        const auto hslot = slot == 4 ? 0 : slot;
-        const auto profile = [this, hslot, level](int frequencyHz) {
-            const data::HarmonicPoint* lo = nullptr;
-            const data::HarmonicPoint* hi = nullptr;
-            for (const auto& row : data::harmonics) {
-                if (row.amp != controls.amp || row.slot != hslot || row.hz != frequencyHz)
-                    continue;
-                if (row.level <= level && (lo == nullptr || row.level > lo->level))
-                    lo = &row;
-                if (row.level >= level && (hi == nullptr || row.level < hi->level))
-                    hi = &row;
-            }
-            if (lo == nullptr)
-                lo = hi;
-            if (hi == nullptr)
-                hi = lo;
+        const auto profile = [this, level](int frequencyHz) {
+            const auto [lo, hi] = harmonicBracket(frequencyHz, level);
             std::array<double, 19> result{};
             if (lo != nullptr) {
                 const auto blend = lo == hi ? 0 : (level - lo->level) / (hi->level - lo->level);
                 for (std::size_t h = 0; h < result.size(); ++h)
-                    result[h] = lo->magnitude[h] + blend * (hi->magnitude[h] - lo->magnitude[h]);
+                    result[h] = std::lerp(lo->magnitude[h], hi->magnitude[h], blend);
             }
             return result;
         };
-        constexpr std::array frequencies{100, 1000, 5000, 10000};
-        const auto high = std::lower_bound(frequencies.begin()+1, frequencies.end(), hz);
-        const auto loHz = *(high-1);
-        const auto hiHz = high == frequencies.end() ? frequencies.back() : *high;
-        const auto lo = profile(loHz);
-        const auto hi = profile(hiHz);
-        const auto blend = loHz == hiHz ? 0 : std::clamp(std::log(hz/loHz)/std::log(double(hiHz)/loHz), 0.0, 1.0);
+        const auto lo = profile(toneBands[lowBand]);
+        const auto hi = profile(toneBands[highBand]);
         const auto omega = 2 * 3.14159265358979323846 * hz / rate;
         for (std::size_t h = 0; h < magnitude.size(); ++h) {
             const auto taper = std::clamp((hostNyquist-(h+2)*hz)/(hostNyquist*.0125), 0.0, 1.0);
-            magnitude[h] = taper * (lo[h] + blend * (hi[h] - lo[h]));
+            magnitude[h] = taper * std::lerp(lo[h], hi[h], bandBlend);
         }
         // Normalize the Chebyshev terms to the linear output at this frequency.
         const auto network = std::hypot(1 - std::cos(omega), std::sin(omega));
@@ -244,7 +271,10 @@ private:
     OutputAmplifier a2;
     OutputCeiling output;
     Controls controls;
-    std::array<double, 96> gainTable{};
+    static constexpr std::array toneBands{100, 1000, 5000, 10000};
+    std::array<std::array<double, 96>, toneBands.size()> gainTable{};
+    std::size_t lowBand{}, highBand{};
+    double bandBlend{};
     std::array<double, 19> magnitude{};
     std::array<double, 2> releaseSeconds{}, attackCoefficients{};
     double dc{}, low{}, releaseCoeff{}, peakDecay{}, baseline{}, harmonicResponse{1};

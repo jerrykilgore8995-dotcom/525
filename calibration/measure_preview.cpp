@@ -13,7 +13,9 @@ int main() {
         vintage525::Controls c;
         c.amp = point.amp;
         c.mod = true;
-        c.ratio = point.slot;
+        c.mode = point.slot == 4 ? 1 : 0;
+        c.input = c.mode == 1 ? .9 : .5;
+        c.ratio = c.mode == 1 ? 0 : point.slot;
         processor.configure(c);
         const double amplitude = std::pow(10.0, (point.level-unityDbu)/20);
         const double omega = 2*std::numbers::pi*point.hz/rate;

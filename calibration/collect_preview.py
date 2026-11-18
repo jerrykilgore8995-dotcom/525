@@ -62,7 +62,24 @@ def main():
                 harmonics.append({**row, "origin": path.stem})
             elif kind == "release" and row["gain_t63_2_ms"]:
                 releases.append({**row, "origin": path.stem})
-    write("harmonics.csv", ("pair","r44_ohm","hz","input_dbu","gain_db","phase_deg","thd_k2_k20_pct",
+    limit = {}
+    limit_paths = (summaries / "limit-band.csv", summaries / "limit-settling" / "summary.csv",
+                   EVIDENCE / "limit-settling" / "summary.csv")
+    for path in limit_paths:
+        for row in read(path):
+            # The local retry CSV omitted fixture columns preserved in its deck directory names.
+            row.setdefault("pair", "2520/2520")
+            if "load_ohm" not in row and "load" not in row:
+                row["load_ohm"] = "10000"
+            if (row.get("mode", "L") != "L" or row["hz"] not in ("100", "1000", "5000", "10000")
+                    or row.get("load_ohm", row.get("load")) != "10000"
+                    or row.get("deess", row.get("ds")) != "0"
+                    or row["solver"] != "complete" or row["settled_half_window_0_1db"] != "True"):
+                continue
+            key = row["pair"], row["hz"], row["input_dbu"]
+            limit[key] = {**row, "mode": "L", "r44_ohm": 200, "origin": path.parent.name}
+    harmonics.extend(limit.values())
+    write("harmonics.csv", ("pair","mode","r44_ohm","hz","input_dbu","gain_db","phase_deg","a1_gain_db","thd_k2_k20_pct",
                             *(f"k{k}_dbc" for k in range(2,21)), "origin"), harmonics)
     write("release.csv", ("pair","r44_ohm","hz","release","gain_t63_2_ms","origin"), releases)
     attacks = {}

@@ -30,9 +30,10 @@ void render(Plugin& plugin, const vintage525::data::HarmonicPoint& point, std::o
     plugin.prepareToPlay(rate, blockSize);
     set(plugin, "Audio amplifier", static_cast<float>(point.amp));
     set(plugin, "Mod", 1);
-    set(plugin, "Mod ratio", static_cast<float>(point.slot) / 3);
-    set(plugin, "Mode", 0);
-    set(plugin, "IN Threshold", .5f);
+    const auto limit = point.slot == 4;
+    set(plugin, "Mod ratio", limit ? 0 : static_cast<float>(point.slot) / 3);
+    set(plugin, "Mode", limit ? 1.f / 3 : 0);
+    set(plugin, "IN Threshold", limit ? .9f : .5f);
     set(plugin, "OUT Make-Up", .75f);
     set(plugin, "Ceiling", .8f);
     set(plugin, "Release 1", 0);
@@ -140,6 +141,8 @@ int main(int argc, char** argv)
         set(*plugin, "Mod", 0);
         set(*plugin, "Mod ratio", 0);
         set(*plugin, "Audio amplifier", 0);
+        set(*plugin, "Mode", 0);
+        set(*plugin, "IN Threshold", .5f);
         snapshot(*plugin, folder);
         plugin->releaseResources();
         return 0;

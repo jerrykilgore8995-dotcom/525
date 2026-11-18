@@ -23,7 +23,7 @@ def generate(folder):
     gain = [row((amp(r), 4 if r["mode"] == "L" else resistor(r), r["input_position"],
                  int(r["ceiling_mark"])//2, r["input_dbu"], r["a1_gain_db"]))
             for r in read("curves.csv") if r["stable"] == "True"]
-    harmonic = [row((amp(r), resistor(r), r["hz"], r["input_dbu"], r["gain_db"], r["phase_deg"],
+    harmonic = [row((amp(r), 4 if r["mode"] == "L" else resistor(r), r["hz"], r["input_dbu"], r["gain_db"], r["phase_deg"], r["a1_gain_db"],
                      *(10**(float(r[f"k{k}_dbc"])/20) for k in range(2,21))))
                 for r in read("harmonics.csv")]
     release = [row((amp(r), resistor(r), r["hz"], ("00","10","01","11").index(r["release"]),
@@ -33,7 +33,7 @@ def generate(folder):
     declarations = (
         ("AttackPoint", "int amp, slot; double level, spanUs;", "attack", attack),
         ("GainPoint", "int amp, slot; double input; int ceiling; double level, gain;", "gain", gain),
-        ("HarmonicPoint", "int amp, slot, hz; double level, gainDb, phaseDeg, magnitude[19];", "harmonics", harmonic),
+        ("HarmonicPoint", "int amp, slot, hz; double level, gainDb, phaseDeg, a1GainDb, magnitude[19];", "harmonics", harmonic),
         ("ReleasePoint", "int amp, slot, hz, setting; double seconds;", "release", release),
     )
     with (folder / "PreviewData.h").open("w") as stream:
