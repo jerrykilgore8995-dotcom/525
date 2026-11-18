@@ -46,7 +46,8 @@ def deck(args):
     yield (f"+ inp={args.input} outp={args.output} ceiling_index={args.ceiling} "
            f"r1pos={args.release[0]} r2pos={args.release[1]} mode={mode} ds={args.deess}")
     yield (f"+ detector_turns={DETECTOR_TURNS[args.detector_transformer]} "
-           f"gaintrim={args.gain_trim} limittrim={args.limit_trim} overridetrim={args.release_override_trim}")
+           f"gaintrim={args.gain_trim} limittrim={args.limit_trim} overridetrim={args.release_override_trim} "
+           f"comp_r44={args.comp_r44}")
     yield ".options method=gear maxord=2"
     if args.diagnostic_tolerances:
         yield ".options reltol=1e-3 vntol=1e-6 chgtol=1e-12"
@@ -91,6 +92,7 @@ def main():
                         help="Override only the vintage detector amplifier for substitution diagnostics")
     parser.add_argument("--detector-transformer", choices=tuple(DETECTOR_TURNS), default="legacy",
                         help="Detector secondary turns per half, relative to the primary")
+    parser.add_argument("--comp-r44", type=float, default=200, help="Compress-only R44 in ohms")
     parser.add_argument("--gain-trim", type=float, default=.22, help="R7 gain-set position")
     parser.add_argument("--limit-trim", type=float, default=.3, help="R75 limit-gain position")
     parser.add_argument("--release-override-trim", type=float, default=.5, help="R52 override position")
@@ -116,6 +118,8 @@ def main():
     parser.add_argument("--trace", type=Path, help="Write raw transient nodes to this path (without spaces)")
     parser.add_argument("--transient", action="store_true")
     args = parser.parse_args()
+    if not 0 < args.comp_r44 < float("inf"):
+        parser.error("--comp-r44 must be a positive finite resistance")
     positions = (args.input, args.output, args.gain_trim, args.limit_trim, args.release_override_trim)
     if not all(0 <= position <= 1 for position in positions):
         parser.error("pot and trim positions must be from 0 to 1")

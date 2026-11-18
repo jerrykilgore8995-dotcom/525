@@ -24,10 +24,10 @@ COLUMNS = ("src", "oh", "x525.a1_out", "x525.a2_out", "x525.a3_out",
 WINDOW_CYCLES = 12
 
 
-def source_text(levels):
+def source_text(levels, hold=HOLD_S):
     points = [(0, levels[0])]
     for i, (before, after) in enumerate(zip(levels, levels[1:]), 1):
-        edge = i * (HOLD_S + RAMP_S)
+        edge = i * (hold + RAMP_S)
         points += [(edge - RAMP_S, before), (edge, after)]
     levels_str = " ".join(f"{t:.6f} {level}" for t, level in points)
     return (f"Vschedule level 0 PWL({levels_str})\n"

@@ -19,20 +19,20 @@ POINTS = ((.25, 10), (.5, 10), (.9, 10), (.25, 16), (.5, 16), (.9, 16), (.5, 20)
 def gain_curve(args, case):
     position, mark, trim, deess = case
     amp, detector = args.pair.split("/")
-    name = f"{amp}-{detector}-{args.mode}-in{position:g}-c{mark}-trim{trim:g}-ds{deess}"
+    name = f"{amp}-{detector}-{args.mode}-in{position:g}-c{mark}-trim{trim:g}-ds{deess}-r44-{args.r44:g}"
     dest = args.output / name
     dest.mkdir(exist_ok=True)
     path = dest / "gain-law.dat"
-    end = len(args.levels) * (HOLD_S + RAMP_S)
+    end = len(args.levels) * (args.hold + RAMP_S)
     params = ["--opamp", amp, "--detector-opamp", detector, "--mode", args.mode,
               "--detector-transformer", "ap2623", "--input", str(position), "--ceiling", str(mark//2),
-              "--limit-trim", str(trim), "--deess", str(deess), "--seconds", str(end),
+              "--limit-trim", str(trim), "--comp-r44", str(args.r44), "--deess", str(deess), "--seconds", str(end),
               "--max-step", str(args.step), "--transient", "--trace", str(path.relative_to(args.output))]
     original = subprocess.check_output(["python3", "fixture.py", *params], cwd=ROOT, text=True)
     deck = []
     for line in original.splitlines():
         if line.startswith("VIN "):
-            line = source_text(args.levels)
+            line = source_text(args.levels, args.hold)
         if line.startswith("fourier "):
             continue
         if line.startswith("tran "):
@@ -43,13 +43,13 @@ def gain_curve(args, case):
         deck.append(line)
     status, data = solve_deck(args, dest, path, "\n".join(deck) + "\n", len(COLUMNS) + 1)
     common = {"id": name, "pair": args.pair, "mode": args.mode, "input_position": position,
-              "ceiling_mark": mark, "limit_trim": trim, "deess": deess, "solver": status}
+              "ceiling_mark": mark, "limit_trim": trim, "r44_ohm": args.r44, "deess": deess, "solver": status}
     if data is None:
         return [common]
-    return summarize_curve(common, data, end, args.levels)
+    return summarize_curve(common, data, end, args.levels, args.hold)
 
 
-def summarize_curve(common, data, end, levels):
+def summarize_curve(common, data, end, levels, hold=HOLD_S):
     times = data[:, 0]
     if times[-1] < end - 1e-7 or np.any(np.diff(times) < 0):
         return [{**common, "solver": "incomplete_trace"}]
@@ -61,9 +61,9 @@ def summarize_curve(common, data, end, levels):
     rows = []
     quiet_gain = None
     for index, level in enumerate(levels):
-        onset = index * (HOLD_S + RAMP_S)
-        near = measure_window(times, data[:, 1:], onset + .260)
-        late = measure_window(times, data[:, 1:], onset + .310)
+        onset = index * (hold + RAMP_S)
+        near = measure_window(times, data[:, 1:], onset + hold - .060)
+        late = measure_window(times, data[:, 1:], onset + hold - .010)
         if quiet_gain is None:
             quiet_gain = late["a1_gain_db"]
         drift = late["out_dbu"] - near["out_dbu"]
@@ -110,10 +110,14 @@ def main():
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--timeout", type=int, default=240)
     parser.add_argument("--levels", type=int, nargs="+", default=LEVELS)
+    parser.add_argument("--r44", type=float, default=200)
+    parser.add_argument("--hold", type=float, default=HOLD_S)
     parser.add_argument("--step", type=float, default=1e-5)
     args = parser.parse_args()
     if len(args.levels) < 3 or list(args.levels) != sorted(set(args.levels)):
         parser.error("--levels requires at least three strictly increasing dBu values")
+    if args.hold < .075:
+        parser.error("--hold must be at least .075 seconds")
     archive_models(args)
     candidates = {
         "controls": [(p,m,.3,d) for (p,m),d in product(POINTS,(0,1))],

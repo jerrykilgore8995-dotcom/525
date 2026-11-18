@@ -1,0 +1,38 @@
+name: Vintage 525C Mod ratio calibration
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'spice/ratio_mod.py'
+      - '.github/workflows/vintage-ratio-mod.yml'
+permissions:
+  contents: read
+jobs:
+  resistor:
+    runs-on: ubuntu-24.04
+    container: debian:13.6-slim
+    strategy:
+      fail-fast: false
+      matrix:
+        amp: [2520, 990]
+        group:
+          - { id: low, values: '22 47 100' }
+          - { id: stock, values: '150 200 330' }
+          - { id: high, values: '470 680 1000' }
+    steps:
+      - run: |
+          apt-get update
+          apt-get install --yes --no-install-recommends ca-certificates git ngspice=44.2+ds-1 python3 python3-numpy
+      - uses: actions/checkout@v4
+      - name: Measure compress feedback resistor candidates
+        env:
+          AMP: ${{ matrix.amp }}
+          VALUES: ${{ matrix.group.values }}
+          OPENBLAS_NUM_THREADS: '1'
+        run: python3 spice/ratio_mod.py --pair "$AMP/2520" --output evidence --resistors $VALUES
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: 525C-Mod-${{ matrix.amp }}-${{ matrix.group.id }}
+          path: evidence/
+          if-no-files-found: error

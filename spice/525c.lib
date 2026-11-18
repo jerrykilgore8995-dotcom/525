@@ -4,7 +4,7 @@
 * Pots normalized positions. IN tracks signal into the detector input.
 .subckt COMP525C chassis out_hi out_lo edge4 in_hi in_low stereo_in defeat test lamp_hi lamp_lo vp_ext com vn_ext
 + params: inp=.5 outp=.75 ceiling_index=5 r1pos=0 r2pos=0 mode=0 ds=0
-+ gaintrim=.22 limittrim=.3 overridetrim=.5 metertrim=.5 detector_turns=.5
++ gaintrim=.22 limittrim=.3 overridetrim=.5 metertrim=.5 detector_turns=.5 comp_r44=200
 .param rdopen=1e12 rdclosed=.02
 .func sw(on) {ternary_fcn(on,rdclosed,rdopen)}
 .func segment(total,p) {max(1u,total*p)}
@@ -107,7 +107,7 @@ DCR7 limit_rect limit_upper A525_RECT
 DCR8 limit_lower limit_rect A525_RECT
 * S1C Comp contact shorts R19 at the normal junction when pressed.
 RS1C35 a3_minus deess_mode_return {sw(mode==0)}
-R44 deess_mode_return s1c_bottom_b 200
+R44 deess_mode_return s1c_bottom_b {ternary_fcn(mode==0,comp_r44,200)}
 C9 s1c_bottom_b in_low 320u
 * S4 D-S alters A3 feedback and switches in a low-frequency shunt branch.
 RS4A a3_minus a3_fb_mid {sw(ds==0)}
