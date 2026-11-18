@@ -1,0 +1,59 @@
+name: Verify uploaded 525 binary maximum GR
+on:
+  push:
+    paths: ['.github/workflows/uploaded-binary-gr.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  check:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: 525-0.1-Windows-x64-VST3-Preview
+          run-id: 44271017164
+          github-token: ${{ github.token }}
+          path: archived
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pedalboard numpy
+      - shell: bash
+        run: |
+          python - <<'PY'
+          import pathlib, hashlib, numpy as np, json
+          from pedalboard import load_plugin
+          path=next(pathlib.Path('archived').rglob('x86_64-win/525.vst3'))
+          sha=hashlib.sha256(path.read_bytes()).hexdigest()
+          assert sha == '265e606c9f80b28ea82b5884f3261e8be3d9257d17da46dcf8859143e48e38c3',sha
+          p=load_plugin(str(path.resolve()))
+          print('PARAMETERS',[(k,v.raw_value,str(v.valid_values)) for k,v in p.parameters.items()],flush=True)
+          sr=44100
+          t=np.arange(sr*4)/sr
+          sine=np.sin(2*np.pi*1000*t).astype(np.float32)
+          rows=[]
+          def setraw(key,v):
+              p.parameters[key].raw_value=v
+          for mode in (0,1):
+              for inp in (.5,.9,1.):
+                  for ceiling in (0.,.8,1.):
+                      for key,v in [('mode',mode/3),('in_threshold',inp),('out_make_up',.75),('ceiling',ceiling),('release_1',0),('release_2',0),('mod',0),('d_s',0)]:
+                          setraw(key,v)
+                      gains=[]
+                      for dbu in (-60,-40,-30,-18,-8,0,4,8,12,18,22,27,30):
+                          x=sine*10**((dbu-22)/20)
+                          y=p.process(np.stack([x,x]),sr,buffer_size=512,reset=True)[0,-sr:]
+                          a=2*abs(np.fft.rfft(y)[1000])/sr
+                          gain=20*np.log10(max(a,1e-20))-dbu+22
+                          gains.append(float(gain))
+                          row=dict(mode=mode,input_pct=inp*100,ceiling=ceiling*20,dbu=dbu,gain_db=float(gain),relative_gr_db=float(gains[0]-gain))
+                          rows.append(row)
+                          print('GR',json.dumps(row),flush=True)
+          pathlib.Path('gr.json').write_text(json.dumps(rows,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: uploaded-binary-gr
+          path: gr.json
