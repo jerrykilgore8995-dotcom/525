@@ -59,3 +59,15 @@ At IN 50%, OUT 75%, Ceiling 16, D-S off, 150 Ω source and 10 kΩ load, all-2520
 The compiled [IN/CEILING detector control](dsp/DetectorDrive.h) matches the SPICE ratio from A1 output to A3 input within 0.007 dB (2520/2520) and 0.004 dB (990/2520). Both mode-switch positions and all eleven Ceiling detents were exercised at eight IN positions in each mode. Relative error is evaluated above a (10^{-5}) absolute gain floor. The output also includes an absolute-error check at endpoints.
 
 The [THD calibration CSV](reference/525c-thd-reference.csv) records the 2520/2520 Compress fixture with the AP2623-ratio detector, original output model, IN 90%, OUT 75%, Ceiling 16, D-S off, release 00, 150 Ω source and 10 kΩ load. Tone lengths are 800 ms at 100 Hz and 320 ms otherwise. The final twelve coherent periods were used for K2–K20. The `detail=2` rows halve the maximum timestep at 1 and 10 kHz and −18 dBu. THD changes by 0.24% and 0.10% relative respectively. Harmonics in this analog simulation above the plug-in's Nyquist limit are outside the direct host harmonic comparison. The +4 dBu condition is near FET cutoff at these controls.
+
+At the same IN/OUT and Ceiling with the 2520/2520 pair in Limit, the initial R75 setting (0.30) yields 17.63:1 over 0 to +4 dBu in the broad sweep. With R75 at 0.90 the focused +2/+4/+6 dBu measurement gives 21.08:1 at a 10 µs maximum timestep and 21.07:1 at 5 µs. Gain reduction spans about 18 to 22 dB, with a maximum fit residual of 0.008 dB. R75 at 1.00 gives 21.01:1 on the same +2 to +6 dBu span at 10 µs. These are candidate alignment points. The 0.90 setting also gives 16.01:1 over 0 to +4 dBu in the focused sweep, so applying a global fixed slope would erase measured behavior.
+
+Reproduce the gain-law checks with:
+
+```sh
+export OPENBLAS_NUM_THREADS=1
+python3 spice/gain_law.py --pair 2520/2520 --mode C --subset quick --levels -40 -30 -24 -20 -18 -16 --step 5e-6 --output evidence/compress-check
+python3 spice/gain_law.py --pair 2520/2520 --mode L --subset alignment --levels -40 -18 -8 -4 0 2 4 6 8 --step 5e-6 --output evidence/limit-check
+```
+
+[Broader gain-law, trim and detector-control run](https://github.com/jerrykilgore8995-dotcom/525/actions/runs/44255132690)
