@@ -25,6 +25,9 @@ public:
     {
         dc = coefficient(.08);
         low = coefficient(.0015);
+        // The reference output path adds about 1.65 us of audio-band group delay.
+        const auto delay = sampleRate * 1.65e-6;
+        transformerPhase = (1 - delay) / (1 + delay);
         controls.ceiling = -1;
         configure({});
     }
@@ -187,7 +190,11 @@ public:
             out += harmonics * peak * gain * (120.0 / 10450.0) * harmonicOutputGain * harmonicResponse;
         }
         outDC = out + dc * (outDC - out);
-        return static_cast<float>(out-outDC);
+        const auto audio = out - outDC;
+        const auto phased = transformerPhase * audio + phaseInput - transformerPhase * phaseOutput;
+        phaseInput = audio;
+        phaseOutput = phased;
+        return static_cast<float>(phased);
     }
 
     double reduction() const noexcept { return controls.mode <= 1 ? std::max(0.0, baseline-gainDb) : 0; }
@@ -307,6 +314,7 @@ private:
     double dc{}, low{}, releaseCoeff{}, peakDecay{}, baseline{}, harmonicResponse{1};
     double peak{}, gainDb = 25.09, previousSource{}, previousCrossing{}, frequency = 1000;
     double inputLow{}, stageLow{}, outDC{}, harmonicOutputGain{};
+    double transformerPhase{}, phaseInput{}, phaseOutput{};
     int sinceCrossing{}, period = 88, hold{}, controlsCounter{}, slot{};
 };
 

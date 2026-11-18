@@ -42,7 +42,7 @@ void Processor::prepareToPlay(double sampleRate, int block)
     maxBlock = juce::jmax(1, block);
     const auto channels = static_cast<size_t>(getTotalNumInputChannels());
     oversampling = std::make_unique<juce::dsp::Oversampling<float>>(
-        channels, 1, juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR, true, true);
+        channels, 1, juce::dsp::Oversampling<float>::filterHalfBandFIREquiripple, true, true);
     oversampling->initProcessing(static_cast<size_t>(maxBlock));
     oversampling->reset();
     const auto latency = juce::roundToInt(oversampling->getLatencyInSamples());
