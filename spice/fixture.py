@@ -45,7 +45,8 @@ def deck(args):
     yield "X525 0 oh ol pin4 ip 0 edge7 edge8 test aux0 aux0 p 0 n COMP525C"
     yield (f"+ inp={args.input} outp={args.output} ceiling_index={args.ceiling} "
            f"r1pos={args.release[0]} r2pos={args.release[1]} mode={mode} ds={args.deess}")
-    yield f"+ detector_turns={DETECTOR_TURNS[args.detector_transformer]}"
+    yield (f"+ detector_turns={DETECTOR_TURNS[args.detector_transformer]} "
+           f"gaintrim={args.gain_trim} limittrim={args.limit_trim} overridetrim={args.release_override_trim}")
     yield ".options method=gear maxord=2"
     if args.diagnostic_tolerances:
         yield ".options reltol=1e-3 vntol=1e-6 chgtol=1e-12"
@@ -90,6 +91,9 @@ def main():
                         help="Override only the vintage detector amplifier for substitution diagnostics")
     parser.add_argument("--detector-transformer", choices=tuple(DETECTOR_TURNS), default="legacy",
                         help="Detector secondary turns per half, relative to the primary")
+    parser.add_argument("--gain-trim", type=float, default=.22, help="R7 gain-set position")
+    parser.add_argument("--limit-trim", type=float, default=.3, help="R75 limit-gain position")
+    parser.add_argument("--release-override-trim", type=float, default=.5, help="R52 override position")
     parser.add_argument("--mode", choices=("C", "L", "OFF"), default="C")
     parser.add_argument("--input", type=float, default=.5)
     parser.add_argument("--output", type=float, default=.75)
@@ -112,8 +116,9 @@ def main():
     parser.add_argument("--trace", type=Path, help="Write raw transient nodes to this path (without spaces)")
     parser.add_argument("--transient", action="store_true")
     args = parser.parse_args()
-    if not (0 <= args.input <= 1 and 0 <= args.output <= 1):
-        parser.error("input and output are positions from 0 to 1")
+    positions = (args.input, args.output, args.gain_trim, args.limit_trim, args.release_override_trim)
+    if not all(0 <= position <= 1 for position in positions):
+        parser.error("pot and trim positions must be from 0 to 1")
     if not (args.source > 0 and args.load > 0 and args.hz > 0 and args.seconds > 0):
         parser.error("source, load, frequency and runtime must be positive")
     if args.burst_dbu is not None and (not args.transient

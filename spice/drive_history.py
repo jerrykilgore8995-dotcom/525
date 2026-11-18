@@ -62,12 +62,13 @@ def measure_window(times, data, end):
 def run_history(args, case):
     mode, winding, schedule = case
     amp, detector = args.pair.split("/")
-    name = f"{amp}-{detector}-{mode}-{winding}-{schedule}-in{args.input:g}-c{args.ceiling}"
+    name = f"{amp}-{detector}-{mode}-{winding}-{schedule}-in{args.input:g}-c{args.ceiling}-r52-{args.release_override_trim:g}"
     dest = args.output / name
     dest.mkdir(exist_ok=True)
     raw = dest / "history.dat"
     params = ["--opamp", amp, "--detector-opamp", detector, "--mode", mode, "--input", str(args.input),
               "--ceiling", str(args.ceiling // 2), "--detector-transformer", winding,
+              "--release-override-trim", str(args.release_override_trim),
               "--seconds", str(END_S), "--max-step", str(args.step),
               "--transient", "--trace", str(raw.relative_to(args.output))]
     original = subprocess.check_output(["python3", "fixture.py", *params], cwd=ROOT, text=True)
@@ -83,7 +84,7 @@ def run_history(args, case):
     status, data = solve_deck(args, dest, raw, "\n".join(deck) + "\n", len(COLUMNS) + 1)
     common = {"id": name, "pair": args.pair, "mode": mode, "detector_transformer": winding,
               "schedule": schedule, "input_position": args.input, "ceiling_mark": args.ceiling,
-              "max_step_s": args.step, "solver": status}
+              "release_override_trim": args.release_override_trim, "max_step_s": args.step, "solver": status}
     if data is None:
         return [common]
     times = data[:, 0]
@@ -101,6 +102,7 @@ def main():
     parser.add_argument("--pair", choices=PAIRS, required=True)
     parser.add_argument("--input", type=float, default=.9, help="IN pot position from 0 to 1")
     parser.add_argument("--ceiling", type=int, default=16, choices=range(0, 21, 2), help="Panel mark")
+    parser.add_argument("--release-override-trim", type=float, default=.5, help="R52 override position")
     parser.add_argument("--mode", choices=MODES, help="Run only this switch position")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--ngspice", default="ngspice")
@@ -108,8 +110,8 @@ def main():
     parser.add_argument("--step", type=float, default=5e-6)
     parser.add_argument("--workers", type=int, default=4)
     args = parser.parse_args()
-    if not 0 <= args.input <= 1:
-        parser.error("--input must be a position from 0 to 1")
+    if not (0 <= args.input <= 1 and 0 <= args.release_override_trim <= 1):
+        parser.error("pot and trim positions must be from 0 to 1")
     args.output = args.output.resolve()
     archive_models(args)
     modes = (args.mode,) if args.mode else MODES
