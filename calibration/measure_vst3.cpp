@@ -89,10 +89,18 @@ void render(Plugin& plugin, const vintage525::data::HarmonicPoint& point, std::o
         + omega * plugin.getLatencySamples()) * 180 / std::numbers::pi, 360);
     std::sort(blockMillis.begin(), blockMillis.end());
     const auto percentile = [&blockMillis](double p) { return blockMillis[std::size_t(p * (blockMillis.size()-1))]; };
+    const bool baseline = input < 0;
     out << point.amp << ',' << point.slot << ',' << point.hz << ',' << point.level << ','
-        << reference << ',' << measured << ',' << (reference > 0 ? 100 * (measured/reference-1) : 0) << ','
-        << point.gainDb << ',' << 20 * std::log10(fundamental/amplitude) << ','
-        << point.phaseDeg << ',' << phase << ',' << plugin.getLatencySamples() << ','
+        << reference << ',' << measured << ',';
+    if (reference > 0)
+        out << 100 * (measured/reference-1);
+    out << ',';
+    if (baseline)
+        out << point.gainDb;
+    out << ',' << 20 * std::log10(fundamental/amplitude) << ',';
+    if (baseline)
+        out << point.phaseDeg;
+    out << ',' << phase << ',' << plugin.getLatencySamples() << ','
         << percentile(.5) << ',' << percentile(.95) << ',' << percentile(.99) << ',' << blockMillis.back()
         << ',' << std::round(position*100) << ',' << std::round(output*100);
     for (int h = 2; h <= 20; ++h) {

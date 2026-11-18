@@ -132,11 +132,15 @@ public:
                 frequency += .12 * (rate / samples - frequency);
                 period = static_cast<int>(std::ceil(samples));
             }
+            if (cyclePeak > 0)
+                completedPeak = cyclePeak;
+            cyclePeak = 0;
             previousCrossing = crossing;
             sinceCrossing = 0;
         }
         previousSource = x;
         const auto absolute = std::abs(x);
+        cyclePeak = std::max(cyclePeak, absolute);
         if (absolute >= peak) {
             peak = absolute;
             hold = std::max(2, period);
@@ -149,7 +153,8 @@ public:
         const auto level = 22 + 20 * std::log10(std::max(peak, 1e-12));
         if (++controlsCounter >= 128) {
             refreshFrequency(frequency);
-            refreshHarmonics(level, frequency);
+            const auto harmonicPeak = sinceCrossing <= period*2 ? std::max(completedPeak, cyclePeak) : peak;
+            refreshHarmonics(level, frequency, harmonicPeak);
             controlsCounter = 0;
         }
         const auto boost = controls.deess ? 7.5 * std::abs(x-inputLow) / std::max(.00001, peak) : 0.0;
@@ -177,7 +182,8 @@ public:
         const auto linear = a2.process(a2In) * 1.96;
         auto out = linear;
         if (controls.mode <= 1 && peak > 1e-6) {
-            const auto u = std::clamp(x / peak, -1.0, 1.0);
+            const auto shapePeak = std::lerp(peak, std::max(spectrumPeak, 1e-12), potStrength);
+            const auto u = std::clamp(x / shapePeak, -1.0, 1.0);
             auto prev = 1.0;
             auto current = u;
             double harmonics = 0;
@@ -189,7 +195,7 @@ public:
             }
             // Weight the waveform by the corresponding output peak, keeping
             // harmonics out of the floor of the model's peak detector.
-            out += harmonics * peak * gain * (120.0 / 10450.0) * harmonicOutputGain * harmonicResponse;
+            out += harmonics * shapePeak * gain * (120.0 / 10450.0) * harmonicOutputGain * harmonicResponse;
         }
         outDC = out + dc * (outDC - out);
         const auto audio = out - outDC;
@@ -275,12 +281,12 @@ private:
         return {lo, hi};
     }
 
-    void refreshHarmonics(double level, double hz) noexcept
+    void refreshHarmonics(double level, double hz, double harmonicPeak = 0) noexcept
     {
         magnitude.fill(0);
         if (controls.mode > 1)
             return;
-        const auto profile = [this, level](int frequencyHz) {
+        const auto profile = [this, level, harmonicPeak](int frequencyHz) {
             const auto [lo, hi] = harmonicBracket(frequencyHz, level);
             std::array<double, 19> result{};
             if (lo != nullptr) {
@@ -288,11 +294,14 @@ private:
                 for (std::size_t h = 0; h < result.size(); ++h)
                     result[h] = std::lerp(lo->magnitude[h], hi->magnitude[h], blend);
             }
-            potHarmonics.apply(result, frequencyHz, level);
-            return result;
+            const auto tracedLevel = 22 + 20 * std::log10(std::max(harmonicPeak, 1e-12));
+            const auto strength = potHarmonics.apply(result, frequencyHz, tracedLevel);
+            return std::pair{result, strength};
         };
-        const auto lo = profile(toneBands[lowBand]);
-        const auto hi = profile(toneBands[highBand]);
+        const auto [lo, loStrength] = profile(toneBands[lowBand]);
+        const auto [hi, hiStrength] = profile(toneBands[highBand]);
+        potStrength = std::lerp(loStrength, hiStrength, bandBlend);
+        spectrumPeak = harmonicPeak;
         const auto omega = 2 * 3.14159265358979323846 * hz / rate;
         for (std::size_t h = 0; h < magnitude.size(); ++h) {
             const auto taper = std::clamp((hostNyquist-(h+2)*hz)/(hostNyquist*.0125), 0.0, 1.0);
@@ -316,6 +325,7 @@ private:
     std::array<double, 19> magnitude{};
     std::array<double, 2> releaseSeconds{}, attackCoefficients{};
     double dc{}, low{}, releaseCoeff{}, peakDecay{}, baseline{}, harmonicResponse{1};
+    double cyclePeak{}, completedPeak{}, spectrumPeak{}, potStrength{};
     double peak{}, gainDb = 25.09, previousSource{}, previousCrossing{}, frequency = 1000;
     double inputLow{}, stageLow{}, outDC{}, harmonicOutputGain{};
     double transformerPhase{}, phaseInput{}, phaseOutput{};

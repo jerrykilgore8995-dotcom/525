@@ -25,8 +25,12 @@ public:
         auto [inLo, inHi] = cell(in);
         auto [outLo, outHi] = cell(out);
         // OUT 0 is mute and has no usable relative harmonic spectrum.
-        if (out < 9.99999)
+        if (out <= 0)
             return;
+        if (out < 9.99999) {
+            outLo = 10;
+            outHi = 20;
+        }
         for (const auto& point : data::potHarmonics) {
             if (point.amp == amp && point.slot == slot && point.ceiling == ceiling &&
                 point.release == release && point.deess == deess &&
@@ -37,7 +41,7 @@ public:
         }
         required = 1u << ((inLo != inHi) + (outLo != outHi));
         inWeight = inLo == inHi ? 0 : std::clamp((in-inLo)/(inHi-inLo), 0.0, 1.0);
-        outWeight = outLo == outHi ? 0 : std::clamp(std::log(out/outLo)/std::log(double(outHi)/outLo), 0.0, 1.0);
+        outWeight = outLo == outHi ? 0 : std::clamp(std::log(out/outLo)/std::log(double(outHi)/outLo), -1.0, 1.0);
         lowerInput = inLo;
         lowerOutput = outLo;
     }
