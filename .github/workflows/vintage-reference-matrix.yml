@@ -1,0 +1,77 @@
+name: Vintage 525C reference coverage
+on:
+  workflow_dispatch:
+    inputs:
+      start:
+        description: First exact-grid AC case ID
+        default: '0'
+      stop:
+        description: Exclusive exact-grid AC end ID (up to 1024 cases per manually submitted shard)
+        default: '256'
+  push:
+    paths:
+      - 'spice/reference_matrix.py'
+      - 'spice/intermodulation.py'
+      - '.github/workflows/vintage-reference-matrix.yml'
+permissions:
+  contents: read
+jobs:
+  reference:
+    runs-on: ubuntu-24.04
+    container: debian:13.6-slim
+    strategy:
+      fail-fast: false
+      matrix:
+        load: [600, 10000]
+        source: [50, 150, 600]
+    steps:
+      - run: |
+          apt-get update
+          apt-get install --yes --no-install-recommends ca-certificates git ngspice=44.2+ds-1 python3 python3-numpy
+      - uses: actions/checkout@v4
+      - name: Measure AC across switch combinations and start the exact pot grid
+        env:
+          OPENBLAS_NUM_THREADS: '1'
+          LOAD: ${{ matrix.load }}
+          SOURCE: ${{ matrix.source }}
+          REQUEST_START: ${{ inputs.start }}
+          REQUEST_STOP: ${{ inputs.stop }}
+        run: |
+          python3 spice/reference_matrix.py ac --preset anchor --source "$SOURCE" --load "$LOAD" --output evidence/anchor
+          if [ "$SOURCE" = 150 ] && [ "$LOAD" = 10000 ]; then
+            START=${REQUEST_START:-0}
+            STOP=${REQUEST_STOP:-256}
+            python3 -c 'import sys; a,b=map(int,sys.argv[1:]); sys.exit(0 if 0<b-a<=1024 else 1)' "$START" "$STOP"
+            python3 spice/reference_matrix.py ac --start "$START" --stop "$STOP" --output evidence/full
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: 525C-control-AC-${{ matrix.source }}-${{ matrix.load }}
+          path: evidence/
+          if-no-files-found: error
+  two-tone:
+    runs-on: ubuntu-24.04
+    container: debian:13.6-slim
+    strategy:
+      fail-fast: false
+      matrix:
+        amplifier: [2520, 990]
+        stimulus: [smpte, ccif]
+    steps:
+      - run: |
+          apt-get update
+          apt-get install --yes --no-install-recommends ca-certificates git ngspice=44.2+ds-1 python3 python3-numpy
+      - uses: actions/checkout@v4
+      - name: Measure intermodulation products across active ratios, Limit and OFF
+        env:
+          OPENBLAS_NUM_THREADS: '1'
+          AMP: ${{ matrix.amplifier }}
+          STIMULUS: ${{ matrix.stimulus }}
+        run: python3 spice/intermodulation.py --pair "$AMP/2520" --stimuli "$STIMULUS" --output evidence
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: 525C-IMD-${{ matrix.amplifier }}-${{ matrix.stimulus }}
+          path: evidence/
+          if-no-files-found: error
