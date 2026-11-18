@@ -1,0 +1,39 @@
+name: 525 Windows VST3 Preview
+on:
+  push:
+    paths:
+      - CMakeLists.txt
+      - 'plugin/**'
+      - 'dsp/**'
+      - 'calibration/**'
+      - .github/workflows/windows-vst3.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Windows x64 VST3
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -A x64
+      - name: Build
+        run: cmake --build build --config Release --target Vintage525_VST3 --parallel 2
+      - name: Stage bundle
+        shell: pwsh
+        run: |
+          $bundle = "build/Vintage525_artefacts/Release/VST3/525.vst3"
+          $binary = "$bundle/Contents/x86_64-win/525.vst3"
+          if (!(Test-Path $binary -PathType Leaf)) { throw "Windows VST3 binary is missing" }
+          Get-FileHash $binary -Algorithm SHA256
+          New-Item -Type Directory dist
+          Copy-Item -Recurse $bundle dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: 525-0.1-Windows-x64-VST3-Preview
+          path: dist/
+          if-no-files-found: error
