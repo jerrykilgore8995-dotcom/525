@@ -157,6 +157,10 @@ def main():
     parser.add_argument("--override", type=float, default=.5)
     parser.add_argument("--input-position", type=float, default=.9)
     parser.add_argument("--comp-r44", type=float, default=200)
+    parser.add_argument("--attack-phase", type=int, choices=(0, 90), nargs="+", default=(0, 90))
+    parser.add_argument("--attack-drive", type=int, choices=(BURST_DBU, 4), nargs="+", default=(BURST_DBU, 4))
+    parser.add_argument("--attack-step", type=float, choices=(2.5e-7, 1.25e-7), nargs="+",
+                        default=(2.5e-7, 1.25e-7))
     parser.add_argument("--output", type=lambda p: Path(p).resolve(), required=True)
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--ngspice", default="ngspice")
@@ -164,7 +168,7 @@ def main():
     args = parser.parse_args()
     archive_models(args)
     writer(args.output / "release-ladder.csv", list(release_ladder(args.output / "525c.lib")))
-    cases = (product((0, 90), ("00",), (2.5e-7, 1.25e-7), (CARRIER,), (BURST_DBU, 4)) if args.kind == "attack"
+    cases = (product(args.attack_phase, ("00",), args.attack_step, (CARRIER,), args.attack_drive) if args.kind == "attack"
              else product((0,), RELEASE, (1e-5,), (100, CARRIER), (BURST_DBU,)))
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
         rows = list(pool.map(lambda case: measure(args, case), cases))
