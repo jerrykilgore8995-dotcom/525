@@ -2,7 +2,7 @@
 
 ## Reference status
 
-Gate 1 is open for the 500-series reissue. No qualified reissue component schematic, BOM, or complete board trace was available in the examined sources. The public reissue manual defines the control behavior and electrical limits. The vintage 525C scan provides component evidence for its own circuit. The reissue has active balanced input, 2510 and 2520 stages, and a power-fail bypass relay. The vintage 525C drawing has a single-ended gain-stage input, three 2520 modules, T1 output and T2 detector transformers, and no reissue relay drawing. Keep the revision identities separate throughout modeling and validation.
+Gate 1 is open for the 500-series reissue. The [vintage SPICE checkpoint](SPICE.md) now includes connected diagnostics for the 525C, 2520 and JE-990. No qualified reissue component schematic, BOM, or complete board trace was available in the examined sources. The public reissue manual defines the control behavior and electrical limits. The vintage 525C scan provides component evidence for its own circuit. The reissue has active balanced input, 2510 and 2520 stages, and a power-fail bypass relay. The vintage 525C drawing has a single-ended gain-stage input, three 2520 modules, T1 output and T2 detector transformers, and no reissue relay drawing. Keep the revision identities separate throughout modeling and validation.
 
 | Artifact | Evidence recorded | Open verification |
 | --- | --- | --- |
@@ -26,4 +26,4 @@ Jensen's original paper specifies 33 kΩ for R10/R11 at ±15 V. Hardy lists 33.2
 
 Historical factory test material is indexed by Furball Audio and discussed in GroupDIY's API archive. The document pages that could be retrieved here contained no complete compatible reissue schematic. Historical material, once obtained, still needs the serial or revision matched before its values are used. Compare hardware tests against their actual rails and load and retain the requested ±15 V reference inlet separately.
 
-No simulation or VST3 build was started at this checkpoint. The committed matrix is a generator for configuration IDs. Its full-grid counts are 7,181,504 with 11 ceiling states and 65,939,264 with 101, before any stimulus multipliers. It contains no measurement results.
+The vintage engineering fixture has run DC, AC and transient diagnostics. The reissue VST3 awaits its reference circuit. The committed matrix is a generator for configuration IDs. Its full-grid counts are 7,181,504 with 11 ceiling states and 65,939,264 with 101, before any stimulus multipliers. It contains no measurement results.

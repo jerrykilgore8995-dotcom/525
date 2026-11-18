@@ -1,0 +1,171 @@
+* Vintage Sowter scan, main assembly. Terminal order follows the numbered edge.
+* Test assumptions and component-source differences are in reference/SPICE.md.
+* mode 0=C, 1=L, 2=OFF. Vintage drawing has no separate bypass relay.
+* Pots normalized positions. IN tracks signal into the detector input.
+.subckt COMP525C chassis out_hi out_lo edge4 in_hi in_low stereo_in defeat test lamp_hi lamp_lo vp_ext com vn_ext
++ params: inp=.5 outp=.75 ceiling_index=5 r1pos=0 r2pos=0 mode=0 ds=0
++ gaintrim=.22 limittrim=.3 overridetrim=.5 metertrim=.5
+.param rdopen=1e12 rdclosed=.02
+.func sw(on) {ternary_fcn(on,rdclosed,rdopen)}
+.func segment(total,p) {max(1u,total*p)}
+* Connector pins 4 and 6 are strapped in the drawing. V elements represent ties.
+Vedge4 edge4 in_low 0
+R1 in_hi test 10k
+R2 test a1_plus 180
+R3 a1_plus in_low 120
+R4 linear_ac fet_gate 39k
+R5 fet_gate detector_control 39k
+R7 a1_minus a1_out {segment(4700,gaintrim)}
+C1 a1_minus fet_drain 250u
+C2 linear_drive linear_ac .1u
+C3 detector_control in_low .1u
+C20 a1_minus a1_out 150p
+JQ1 fet_drain fet_gate in_low A525_VCR2N
+Q5 neg_rail q5_base linear_drive A525_2N5087
+R78 a1_plus q5_base 1k
+R79 linear_drive pos_rail 10k
+XA1 a1_plus a1_minus a1_out pos_rail neg_rail in_low ACTIVE_DOA
+* The input/link return and source are on pins 7 and 8, in parallel with R63.
+Vedge8 defeat a1_out 0
+R63 defeat stereo_in 150
+R43a stereo_in in_pot_wiper {segment(1000,1-inp)}
+R43b in_pot_wiper in_low {segment(1000,inp)}
+R38a a1_out out_pot_wiper {segment(1000,1-outp)}
+R38b out_pot_wiper in_low {segment(1000,outp)}
+* Both physical ladder decks, with one selected contact each (0 through 10).
+R9 ca_2 ca_4 47k
+R10 ca_4 ca_6 16k
+R11 ca_6 ca_8 9.1k
+R12 ca_8 ca_10 5.6k
+R13 ca_10 ca_12 3.9k
+R14 ca_12 ca_14 2.7k
+R15 ca_14 ca_16 1.8k
+R16 ca_16 ca_18 1.5k
+R17 ca_18 in_pot_wiper 1.2k
+RS5A0 a3_plus in_low {sw(ceiling_index==0)}
+RS5A2 a3_plus ca_2 {sw(ceiling_index==1)}
+RS5A4 a3_plus ca_4 {sw(ceiling_index==2)}
+RS5A6 a3_plus ca_6 {sw(ceiling_index==3)}
+RS5A8 a3_plus ca_8 {sw(ceiling_index==4)}
+RS5A10 a3_plus ca_10 {sw(ceiling_index==5)}
+RS5A12 a3_plus ca_12 {sw(ceiling_index==6)}
+RS5A14 a3_plus ca_14 {sw(ceiling_index==7)}
+RS5A16 a3_plus ca_16 {sw(ceiling_index==8)}
+RS5A18 a3_plus ca_18 {sw(ceiling_index==9)}
+RS5A20 a3_plus in_pot_wiper {sw(ceiling_index==10)}
+R28 cb_0 cb_2 8.2k
+R29 cb_2 cb_4 6.8k
+R30 cb_4 cb_6 5.1k
+R31 cb_6 cb_8 4.3k
+R32 cb_8 cb_10 3.3k
+R33 cb_10 cb_12 2.7k
+R34 cb_12 cb_14 2.2k
+R35 cb_14 cb_16 1.6k
+R36 cb_16 cb_18 1.3k
+R37 cb_18 cb_20 1.1k
+RS5B0 out_pot_wiper cb_0 {sw(ceiling_index==0)}
+RS5B2 out_pot_wiper cb_2 {sw(ceiling_index==1)}
+RS5B4 out_pot_wiper cb_4 {sw(ceiling_index==2)}
+RS5B6 out_pot_wiper cb_6 {sw(ceiling_index==3)}
+RS5B8 out_pot_wiper cb_8 {sw(ceiling_index==4)}
+RS5B10 out_pot_wiper cb_10 {sw(ceiling_index==5)}
+RS5B12 out_pot_wiper cb_12 {sw(ceiling_index==6)}
+RS5B14 out_pot_wiper cb_14 {sw(ceiling_index==7)}
+RS5B16 out_pot_wiper cb_16 {sw(ceiling_index==8)}
+RS5B18 out_pot_wiper cb_18 {sw(ceiling_index==9)}
+RS5B20 out_pot_wiper cb_20 {sw(ceiling_index==10)}
+R64 cb_20 in_low 3.3k
+* S1A: audio through output stage in OFF via factory test tap.
+RS1A13 meter_sw_feedback meter_mode_common {sw(mode!=2)}
+RS1A24 cb_20 a2_input_ac {sw(mode!=2)}
+RS1A46 a2_input_ac test {sw(mode==2)}
+RS1A810 lamp_switch lamp_lo {sw(mode!=2)}
+RDS1 lamp_switch lamp_join 85
+RDS2 lamp_join lamp_hi 85
+RM1 meter_mode_common in_low 650
+C5 a2_plus a2_input_ac 5u
+R39 a2_plus in_low 62k
+C6 a2_plus in_low 47p
+R40 a2_minus a2_fb_ac 1k
+C7 a2_fb_ac in_low 33u
+R41 a2_minus a2_out 20k
+C8 a2_minus a2_out 47p
+XA2 a2_plus a2_minus a2_out pos_rail neg_rail in_low ACTIVE_DOA
+XT1 a2_out in_low out_hi t1_sjoin out_lo T525C_OUT
+* S1B Limit bank. Common side A also sees R18 in the drawing.
+R18 a3_plus s1b_common_a 82k
+RS1B13 a3_plus s1b_common_a {sw(mode!=1)}
+RS1B35 s1b_common_a in_pot_wiper {sw(mode==1)}
+RS1B46 s1b_common_b a3_fb_out {sw(mode==1)}
+R72 pos_rail limit_upper 3.9k
+R73 neg_rail limit_lower 2.7k
+R74 limit_rect s1b_common_b 200
+R75 limit_upper limit_lower {segment(2000,limittrim)}
+C17 limit_upper com 33u
+C18 com limit_lower 33u
+DCR7 limit_rect limit_upper A525_RECT
+DCR8 limit_lower limit_rect A525_RECT
+* S1C Comp contact shorts R19 at the normal junction when pressed.
+RS1C35 a3_minus deess_mode_return {sw(mode==0)}
+R44 deess_mode_return s1c_bottom_b 200
+C9 s1c_bottom_b in_low 320u
+* S4 D-S alters A3 feedback and switches in a low-frequency shunt branch.
+RS4A a3_minus a3_fb_mid {sw(ds==0)}
+RS4B deess_mode_return s4_lower_b {sw(ds==1)}
+R19 a3_minus deess_mode_return 200
+R45 deess_ac s4_lower_b 51
+C10 deess_ac in_low .33u
+R47 a3_minus a3_fb_mid 75k
+C11 a3_minus a3_fb_mid .033u
+R46 a3_fb_mid a3_fb_out 100k
+R71 a3_out a3_fb_out 1k
+R65 a3_plus in_low 3.9k
+XA3 a3_plus a3_minus a3_out pos_rail neg_rail com ACTIVE_DOA
+XT2 a3_out in_low t2_high in_low t2_low T525C_DETECTOR
+* Detector, release override and meter rectifier.
+R76 t2_high release_rect_hi 2.7k
+C13 release_rect_hi in_low .1u
+R77 release_rect_lo t2_low 2.7k
+C14 in_low release_rect_lo .1u
+DCR1 release_rect release_rect_hi A525_RECT
+DCR2 release_rect release_rect_lo A525_RECT
+DCR3 t2_high meter_rect A525_RECT
+DCR4 t2_low meter_rect A525_RECT
+DCR11 detector_control t2_high A525_RECT
+DCR12 detector_control t2_low A525_RECT
+R50 detector_control override_ac 910k
+DCR5 override_bias override_ac A525_RECT
+R51 neg_rail override_bias 16k
+R52 override_bias in_low {segment(47000,overridetrim)}
+R53 meter_rect meter_trim_top 500
+C12 meter_trim_top in_low 5u
+R55a meter_trim_top meter_trim_wiper {segment(10000,1-metertrim)}
+R55b meter_trim_wiper in_low {segment(10000,metertrim)}
+R68 meter_sw_feedback meter_clamp_top 1.5k
+R54 meter_clamp_top meter_trim_wiper 7.5k
+DCR6 meter_trim_wiper meter_clamp_top A525_RECT
+* REL buttons shunt the respective ladder paths.
+R48 release_rect q2_base 1k
+R70 q2_base in_low 5.6k
+Q2 in_low q2_base q4_base A525_2N5087
+Q4 release_time_sw q4_base q4_emitter A525_2N5087
+R49 q4_emitter in_low 47k
+R56 neg_rail release_bias_ac 1k
+C19 q4_base release_bias_ac 10u
+R57 neg_rail q4_base 100k
+R58 q4_base in_low 10k
+R59 release_time_sw release_series_mid 15meg
+R66 release_series_mid q4_emitter 15meg
+C21 in_low q4_emitter 22u
+R61 detector_control rel_mid_tap 4.7meg
+R62 rel_mid_tap rel_slow_tap 20meg
+R60 rel_slow_tap release_time_sw 1meg
+RS2 detector_control rel_mid_tap {sw(r1pos==0)}
+RS3A rel_mid_tap rel_slow_tap {sw(r2pos==0)}
+RS3B rel_slow_tap release_time_sw {sw(r2pos==1)}
+* On-board reverse protection and reservoir capacitors remain in circuit.
+DCR9 vp_ext pos_rail A525_SUPPLY
+DCR10 neg_rail vn_ext A525_SUPPLY
+C15 in_low neg_rail 10u
+C16 pos_rail in_low 10u
+.ends COMP525C

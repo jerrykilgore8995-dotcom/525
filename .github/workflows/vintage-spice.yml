@@ -1,0 +1,48 @@
+name: Vintage 525C circuit checks
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'spice/**'
+      - 'reference/**'
+      - '.github/workflows/vintage-spice.yml'
+permissions:
+  contents: read
+jobs:
+  diagnostics:
+    runs-on: ubuntu-24.04
+    container: debian:13.6-slim
+    steps:
+      - run: |
+          apt-get update
+          apt-get install --yes --no-install-recommends ca-certificates git ngspice=44.2+ds-1 python3
+      - uses: actions/checkout@v4
+      - name: Circuit coverage and diagnostics
+        working-directory: spice
+        run: |
+          mkdir ../evidence
+          python3 audit.py > ../evidence/component-mapping.txt
+          ngspice --version > ../evidence/ngspice-version.txt
+          for opamp in 2520 2520-drawing 990; do
+            for mode in C L OFF; do
+              for index in 0 5 10; do
+                name="$opamp-$mode-$index"
+                python3 fixture.py --opamp "$opamp" --mode "$mode" --ceiling "$index" --ac > "../evidence/$name.cir"
+                ngspice -b "../evidence/$name.cir" > "../evidence/$name.log" 2>&1
+                grep -Eq 'of Data Rows : [1-9][0-9]+' "../evidence/$name.log"
+                test "$(grep -Fc '[resistance] = 2.000000e-02' "../evidence/$name.log")" -eq 2
+              done
+            done
+          done
+          python3 fixture.py --opamp 990 --ceiling 0 --transient --diagnostic-tolerances --trace ../evidence/990-audio.dat > ../evidence/990-audio.cir
+          timeout 45 ngspice -b ../evidence/990-audio.cir > ../evidence/990-audio.log 2>&1
+          grep -q '^out_rms' ../evidence/990-audio.log
+          test -s ../evidence/990-audio.dat
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Vintage-525C-SPICE-diagnostics
+          path: |
+            evidence/
+            spice/*.lib
+            reference/SPICE.md

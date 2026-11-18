@@ -1,6 +1,6 @@
 # 525
 
-Component-level reconstruction of the API 525 500-series reissue followed by a Windows x64 VST3. The project is at the circuit evidence stage. See the [current reconstruction checkpoint](reference/RECONSTRUCTION.md) for the vintage 525C trace, original Jensen JE-990 component audit, reissue control table and gaps preventing simulation.
+Component-level reconstruction of the API 525 500-series reissue followed by a Windows x64 VST3. The [vintage SPICE checkpoint](reference/SPICE.md) includes a connected 525C deck with part-level 2520 and JE-990 variants, reproducible diagnostics, and documented stability failures. See the [current reconstruction checkpoint](reference/RECONSTRUCTION.md) for the vintage 525C trace, original Jensen JE-990 component audit, reissue control table and gaps preventing simulation.
 
 - [Engineering gates](AGENTS.md)
 - [Measurement and acceptance protocol](MEASUREMENT.md)

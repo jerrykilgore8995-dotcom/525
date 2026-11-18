@@ -1,0 +1,32 @@
+* Winding networks preserve the drawn dots and series secondary joins.
+* Nominal electrical fixture estimates, independently replaceable once measured.
+* No identified factory transformer cards or magnetic saturation data are available.
+.subckt T525C_OUT pri_dot pri_end sec_dot sec_tap sec_end
+Rpri pri_dot p 32
+Lpri p pri_end 8
+Rcore p pri_end 24k
+Cp pri_dot pri_end 110p
+Rs1 sec_dot s1 34
+Ls1 s1 sec_tap 8
+Ls2 sec_tap s2 8
+Rs2 s2 sec_end 34
+Cs1 sec_dot sec_tap 120p
+Cs2 sec_tap sec_end 120p
+Cps pri_dot sec_dot 33p
+Kcore Lpri Ls1 Ls2 .9997
+.ends T525C_OUT
+
+.subckt T525C_DETECTOR pri_dot pri_end sec_dot sec_tap sec_end
+Rpri pri_dot p 46
+Lpri p pri_end 9
+Rcore p pri_end 32k
+Cp pri_dot pri_end 100p
+Rs1 sec_dot s1 20
+Ls1 s1 sec_tap 2.25
+Ls2 sec_tap s2 2.25
+Rs2 s2 sec_end 20
+Cs1 sec_dot sec_tap 110p
+Cs2 sec_tap sec_end 110p
+Cps pri_dot sec_dot 25p
+Kcore Lpri Ls1 Ls2 .9997
+.ends T525C_DETECTOR

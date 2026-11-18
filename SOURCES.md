@@ -24,3 +24,11 @@ Inspection date 2026-11-17 (America/New_York). Third-party documents remain at t
 | [VCR2N datasheet index](https://www.alldatasheet.com/datasheet-pdf/pdf/84903/VISHAY/VCR2N.html) | Vishay/Siliconix product sheet | Vintage Q1 identifier matches the scan. Device limits do not determine the precise reissue FET or its distortion behavior. |
 
 Front photograph SHA-256 at the URL above `3b66f7ccb81c43d62d59b27c8f2825fff4a0bceb84fcf517b265f381d787b0c2`.
+
+## Vintage SPICE additions
+
+- [Circulated 2520 redraw](https://www.scribd.com/document/334300673/API-2520-schematic-pdf), page image SHA-256 `761a2e5391c2deb27a0655d4e85e8dbf03d74f39302a202a07d32e2283c5ef49`. Preserve the pictured version separately from any rewire candidate.
+- [2520 drawing variants discussion](https://groupdiy.com/threads/origin-of-2520-schematic.62035/) documents the D2/Q9 disagreement. [2520BC parts and build reports](https://groupdiy.com/threads/ours-sound-like-the-2-5-2-0.4796/page-6) document the alternate parts set. Neither validates the Q9 analysis on the real device.
+- [Motorola rectifier and reference diode handbook](https://www.bitsavers.org/components/motorola/_dataBooks/1988_Motorola_Rectifiers_and_Zener_Diodes_Data.pdf), MZ2360/MZ2361 forward reference specifications.
+- [Transistor model library](https://github.com/mpkopec/ltspice-lib/blob/master/cmp/standard.bjt), examined file SHA-256 `c3a3d6978b7a29b8b39e41b67860dc597fd4f470541f82fa138af42bb7268c16`. Fairchild-labelled 2N5087 and 2N5210 entries.
+- [API 550L circuit sheets](https://www.scribd.com/document/791521152/API-550L) expose a 2510 module pin map and circuit instances. The module is shown as a block.
