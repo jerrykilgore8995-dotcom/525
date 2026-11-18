@@ -109,3 +109,22 @@ The Limit candidate measured 21.05:1 over +2 to +6 dBu at IN 50%.
 The 63.2% recovery crossings after a −18 to −30 dBu step at IN 90% were
 121, 538, 1825, and 2238 ms. These are fixed test conditions, with separate
 numerical checks required for other control settings.
+
+### Independent IN and OUT harmonic calibration
+
+The [pot grid](.github/workflows/vintage-harmonic-pots.yml) measures all 121
+IN × OUT anchors at 10% increments, plus 100 independently measured midpoint
+holdouts. The first run uses stock Compress, the 2520 pairing, ceiling 16,
+release 00, and D-S off. It sweeps four frequencies from 100 Hz to 10 kHz and
+six source levels from −30 to +24 dBu. The workflow can also run other
+amplifier and switch configurations. Reference rows include K2–K20 amplitude,
+phase, absolute output level, and late-window drift.
+
+The embedded data currently cover +18 dBu at 1 kHz, IN 90% and 100%, and
+OUT 10–100%. Build the sparse harmonic table with
+`python3 calibration/generate_pot_harmonics.py reference/harmonic-pots/*.csv`.
+Measured midpoint rows are held out from the table. OUT 0 is included in
+SPICE as an absolute output-level check. Its harmonics relative to a near-zero
+fundamental are below the calibration range. Missing calibration cells
+continue to use the previous preview interpolation. Full coverage and
+per-harmonic 5–10% agreement remain open.

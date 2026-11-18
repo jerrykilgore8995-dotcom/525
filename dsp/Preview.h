@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DetectorDrive.h"
+#include "PotHarmonics.h"
 #include "OutputAmplifier.h"
 #include "OutputCeiling.h"
 #include "../calibration/PreviewData.h"
@@ -38,6 +39,7 @@ public:
             return;
         controls = next;
         slot = next.mode == 1 ? 4 : (next.mod ? next.ratio : 0);
+        potHarmonics.select(next.amp, slot, next.ceiling, next.release, next.deess, next.input, next.output);
         output.configure(next.output, next.ceiling, rate);
         const auto outCoefficients = OutputCeiling::calculate(next.output, next.ceiling, rate);
         harmonicOutputGain = outCoefficients.gain / (1-outCoefficients.highPole) * 21 * 1.96;
@@ -286,6 +288,7 @@ private:
                 for (std::size_t h = 0; h < result.size(); ++h)
                     result[h] = std::lerp(lo->magnitude[h], hi->magnitude[h], blend);
             }
+            potHarmonics.apply(result, frequencyHz, level);
             return result;
         };
         const auto lo = profile(toneBands[lowBand]);
@@ -303,6 +306,7 @@ private:
 
     double rate, hostNyquist;
     OutputAmplifier a2;
+    PotHarmonics potHarmonics;
     OutputCeiling output;
     Controls controls;
     static constexpr std::array toneBands{100, 1000, 5000, 10000};
