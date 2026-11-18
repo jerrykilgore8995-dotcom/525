@@ -76,13 +76,21 @@ def ac_summary(data):
     detector_phase = np.unwrap(detector_phase)
     delay = -np.gradient(phase, f) / (2 * np.pi)
     ref_gain = np.interp(1000, f, gain)
-    in_band = (f > 20) & (f < 40000)
-    band = np.r_[gain[in_band], np.interp([20, 40000], f, gain)] - ref_gain
+    def bounds(lo, hi):
+        interior = (f > lo) & (f < hi)
+        band = np.r_[gain[interior], np.interp([lo, hi], f, gain)] - ref_gain
+        return float(band.min()), float(band.max())
+
+    wide_min, wide_max = bounds(20, 40000)
+    legacy_min, legacy_max = bounds(30, 20000)
     return {
         "gain_1k_db": ref_gain,
-        "min_20_40k_relative_db": band.min(),
-        "max_20_40k_relative_db": band.max(),
-        "within_nominal_half_db": bool(band.min() >= -.5 and band.max() <= .5),
+        "min_20_40k_relative_db": wide_min,
+        "max_20_40k_relative_db": wide_max,
+        "within_nominal_half_db": wide_min >= -.5 and wide_max <= .5,
+        "min_30_20k_relative_db": legacy_min,
+        "max_30_20k_relative_db": legacy_max,
+        "within_legacy_half_db": legacy_min >= -.5 and legacy_max <= .5,
         **{f"gain_db_{hz}hz": np.interp(hz, f, gain) for hz in AC_PROBES_HZ},
         **{f"phase_deg_{hz}hz": math.degrees(np.interp(hz, f, phase)) for hz in AC_PROBES_HZ},
         **{f"group_delay_us_{hz}hz": np.interp(hz, f, delay) * 1e6 for hz in AC_PROBES_HZ},
@@ -214,6 +222,16 @@ def envelope_case(args, item):
             "release": release, "max_step_s": max_step, "solver": status, **metrics}
 
 
+def archive_models(args):
+    args.output.mkdir(parents=True, exist_ok=True)
+    libs = sorted(ROOT.glob("*.lib"))
+    for lib in libs:
+        (args.output/lib.name).write_bytes(lib.read_bytes())
+    (args.output/"model-hashes.txt").write_text("\n".join(
+        f"{hashlib.sha256(lib.read_bytes()).hexdigest()}  {lib.name}" for lib in libs)+"\n")
+    (args.output/"ngspice-version.txt").write_text(subprocess.check_output([args.ngspice, "-v"], text=True))
+
+
 def main():
     cli = argparse.ArgumentParser(description=__doc__)
     cli.add_argument("kind", choices=("ac", "attack", "release", "magnetics"))
@@ -223,13 +241,7 @@ def main():
     cli.add_argument("--workers", type=int, default=4)
     cli.add_argument("--timeout", type=int, default=75)
     args = cli.parse_args()
-    args.output.mkdir(parents=True, exist_ok=True)
-    libs = sorted(ROOT.glob("*.lib"))
-    for lib in libs:
-        (args.output/lib.name).write_bytes(lib.read_bytes())
-    (args.output/"model-hashes.txt").write_text("\n".join(
-        f"{hashlib.sha256(lib.read_bytes()).hexdigest()}  {lib.name}" for lib in libs)+"\n")
-    (args.output/"ngspice-version.txt").write_text(subprocess.check_output([args.ngspice, "-v"], text=True))
+    archive_models(args)
     pairs = (args.pair,) if args.pair else PAIRS
     if args.kind == "ac":
         cases = product(pairs, (*MODES, "OFF"), (50, 150, 600),

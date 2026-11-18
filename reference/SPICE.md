@@ -120,3 +120,23 @@ OPENBLAS_NUM_THREADS=1 python3 spice/verify.py magnetics --output evidence/magne
 ```
 
 Run an archived deck from its artifact's top-level directory with `ngspice -b <case-directory>/fixture.cir`. The deck writes a fresh trace to its own case directory.
+
+## Control calibration and first real-time stage
+
+At 10 kΩ with a 150 Ω source, Ceiling 16, IN 90% and OUT 75%, both amplifier pairs give nearly identical active-mode magnitude. With D-S off, the all-2520 Compress path is −0.609 dB at 30 Hz, −0.349 dB at 40 Hz, −0.049 dB at 20 kHz and −0.207 dB at 40 kHz, all relative to 1 kHz. The hybrid is −0.609, −0.349, −0.056 and −0.242 dB at the same frequencies. At 30 Hz the model is about 0.11 dB outside the earlier reissue's ±0.5 dB / 30 Hz–20 kHz nominal band. The 2020 reissue's nominal band starts at 20 Hz, where both pairings are approximately 1.30 dB down in Compress. Known 525C wiring and the unmodified device and transformer cards remain the circuit reference for these checks. [Earlier API spec sheet](https://www.barryrudolph.com/recall/manuals/br525.pdf) · [2020 user guide](https://apiaudio.com/docs/manuals/525_user_2020-12-15.pdf)
+
+The control grid separately sweeps IN and OUT through their ranges for every 2 dB Ceiling mark and includes simultaneous off-grid IN/OUT holdouts. The AC matrix uses both D-S positions and C, L and OFF. The 1 kHz transient matrix uses six drive levels, selected D-S drive levels, pot sweeps and holdouts at +4 dBu. It records output level, phase, gate ripple, K2–K20 levels and phase, and late-window gain drift. A CSV solver completion indicates a valid trace. The gain-drift field separately flags cases that change by over 0.1 dB across the last 12 ms. Other release settings retain their dedicated timing matrix; their pot and drive interactions remain to be measured.
+
+The output network is the first reduced real-time stage. [OutputCeiling.h](../dsp/OutputCeiling.h) implements the loaded OUT pot and Ceiling ladder plus the C5/R39/C6 input network of A2 using a two-pole filter with three history values. It leaves A1, gain reduction, A2 and transformer coloration to their own stage models. The C++ harness measures the impulse response through the actual sample processor. The comparison scales one SPICE response anchor (Ceiling 16, OUT 75%) by the measured digital tap ratio, and also tests the absolute digital tap against the independent circuit equation. OUT's exact-zero endpoint is excluded from relative error maxima because the SPICE deck uses a 1 µΩ numerical floor. Rows for that endpoint remain in the CSV.
+
+In the first all-2520 Compress run, all 308 AC rows completed. The analog equation predicted the sampled output settings within 0.066 dB and 0.731° through 40 kHz. At 44.1 kHz, the compiled code reproduced the SPICE-relative magnitude to within 0.006 dB and phase to within 0.635° through the 20 kHz test point. These are small-signal control-law results at 10 kΩ with an anchored stage. They establish the OUT/CEILING transfer over the sampled settings. They do not include the compressor detector, attack/release or amplifier/transformer fit.
+
+Run locally or use the [control calibration workflow](../.github/workflows/vintage-controls.yml):
+
+```sh
+export OPENBLAS_NUM_THREADS=1
+python3 spice/control_grid.py ac --pair 2520/2520 --mode C --output evidence/control-ac
+g++ -O2 -std=c++17 dsp/measure_output_ceiling.cpp -o /tmp/measure-tap
+python3 spice/check_control_law.py evidence/control-ac/summary.csv evidence/control-ac/control-law.csv --dsp /tmp/measure-tap
+python3 spice/control_grid.py tone --pair 2520/2520 --mode C --ceilings 16 18 20 --output evidence/control-tone
+```
