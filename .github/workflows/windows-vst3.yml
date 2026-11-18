@@ -48,6 +48,7 @@ jobs:
         run: |
           python calibration/compare_pot_harmonics.py measurements/vst3-measurements.csv reference/harmonic-pots/*.csv | tee measurements/pot-harmonic-parity.txt
       - uses: actions/upload-artifact@v4
+        if: always() && hashFiles('measurements/vst3-measurements.csv') != ''
         with:
           name: 525-binary-measurements
           path: measurements/

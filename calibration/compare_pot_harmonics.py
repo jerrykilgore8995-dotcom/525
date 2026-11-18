@@ -64,7 +64,7 @@ def main():
         thd = [error for _, error, _ in selected]
         harmonics = [error for _, _, values in selected for error in values]
         print(f"{category}: THD {sum(x <= 10 for x in thd)}/{len(thd)} within 10%, "
-              f"max {max(thd):.2f}%; individual harmonics ≥−100 dBc "
+              f"max {max(thd):.2f}%; individual harmonics at or above -100 dBc "
               f"{sum(x <= 10 for x in harmonics)}/{len(harmonics)} within 10%, "
               f"max {max(harmonics, default=0):.2f}%")
 
