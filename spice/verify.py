@@ -47,6 +47,10 @@ def run_fixture(args, name, params, *, ac=False, coupling=None):
             raise ValueError("Output transformer coupling marker changed")
         alternate.write_text(source.replace(marker, f"Kcore Lpri Ls1 Ls2 {coupling}\n.ends T525C_OUT"))
         deck = deck.replace(".include magnetics.lib", f".include {alternate.relative_to(args.output)}")
+    return solve_deck(args, dest, raw, deck, 5 if ac else 9)
+
+
+def solve_deck(args, dest, raw, deck, columns):
     deck_path = dest / "fixture.cir"
     log_path = dest / "ngspice.log"
     deck_path.write_text(deck)
@@ -64,7 +68,7 @@ def run_fixture(args, name, params, *, ac=False, coupling=None):
         data = np.loadtxt(raw, skiprows=1, ndmin=2)
     except ValueError:
         return "invalid_waveform", None
-    if len(data) < 2 or data.shape[1] != (5 if ac else 9) or not np.isfinite(data).all():
+    if len(data) < 2 or data.shape[1] != columns or not np.isfinite(data).all():
         return "invalid_waveform", None
     return "complete", data
 

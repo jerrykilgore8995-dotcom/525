@@ -1,0 +1,54 @@
+name: Vintage 525C gain history and output calibration
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'spice/drive_history.py'
+      - 'spice/output_loading.py'
+      - '.github/workflows/vintage-calibration.yml'
+permissions:
+  contents: read
+jobs:
+  gain-history:
+    runs-on: ubuntu-24.04
+    container: debian:13.6-slim
+    strategy:
+      fail-fast: false
+      matrix:
+        amp: [2520, 990]
+        mode: [C, L]
+    steps:
+      - run: |
+          apt-get update
+          apt-get install --yes --no-install-recommends ca-certificates git ngspice=44.2+ds-1 python3 python3-numpy
+      - uses: actions/checkout@v4
+      - name: Measure sustained gain, cutoff, and recovery after overload
+        env:
+          AMP: ${{ matrix.amp }}
+          MODE: ${{ matrix.mode }}
+          OPENBLAS_NUM_THREADS: '1'
+        run: python3 spice/drive_history.py --pair "$AMP/2520" --mode "$MODE" --output evidence
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: 525C-gain-history-${{ matrix.amp }}-${{ matrix.mode }}
+          path: evidence/
+          if-no-files-found: error
+  output-loading:
+    runs-on: ubuntu-24.04
+    container: debian:13.6-slim
+    steps:
+      - run: |
+          apt-get update
+          apt-get install --yes --no-install-recommends ca-certificates git ngspice=44.2+ds-1 python3 python3-numpy
+      - uses: actions/checkout@v4
+      - name: Compare AC and driven loading with the catalog-bounded candidate
+        env:
+          OPENBLAS_NUM_THREADS: '1'
+        run: python3 spice/output_loading.py --output evidence --driven
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: 525C-output-loading
+          path: evidence/
+          if-no-files-found: error
