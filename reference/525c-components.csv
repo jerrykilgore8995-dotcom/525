@@ -1,0 +1,121 @@
+refdes,area,printed_value_or_type,pins_in_listed_order,nets_in_pin_order,reading,note
+R1,input,10k,1 2,edge_5 edge_9,trace,Factory test at series junction
+R2,input,180 ohm,1 2,edge_9 a1_plus,trace,
+R3,input,120 ohm,1 2,a1_plus in_low,trace,
+R4,FET,39k,1 2,linear_ac fet_gate,trace,
+R5,FET,39k,1 2,fet_gate detector_control,trace,
+R7,FET,4.7k,end_a wiper end_b,a1_minus a1_out a1_out,trace,Gain set trim
+R9,ceiling A,unclear,1 2,ceil_a_2 ceil_a_4,value-open,Top ladder value unclear
+R10,ceiling A,16k,1 2,ceil_a_4 ceil_a_6,trace,
+R11,ceiling A,9.1k,1 2,ceil_a_6 ceil_a_8,trace,
+R12,ceiling A,5.6k,1 2,ceil_a_8 ceil_a_10,trace,
+R13,ceiling A,3.9k,1 2,ceil_a_10 ceil_a_12,trace,
+R14,ceiling A,2.7k,1 2,ceil_a_12 ceil_a_14,trace,
+R15,ceiling A,1.8k,1 2,ceil_a_14 ceil_a_16,trace,
+R16,ceiling A,1.5k,1 2,ceil_a_16 ceil_a_18,trace,
+R17,ceiling A,1.2k,1 2,ceil_a_18 in_pot_wiper,trace,S5A position 20 also terminates here
+R18,mode,82k,1 2,ceil_a_wiper s1b_common_a,trace,
+R19,de-ess,200 ohm,1 2,a3_minus deess_mode_return,trace,
+R28,ceiling B,8.2k,1 2,ceil_b_0 ceil_b_2,trace,
+R29,ceiling B,6.8k,1 2,ceil_b_2 ceil_b_4,trace,
+R30,ceiling B,5.1k,1 2,ceil_b_4 ceil_b_6,trace,
+R31,ceiling B,4.3k,1 2,ceil_b_6 ceil_b_8,trace,
+R32,ceiling B,3.3k,1 2,ceil_b_8 ceil_b_10,trace,
+R33,ceiling B,2.7k,1 2,ceil_b_10 ceil_b_12,trace,
+R34,ceiling B,2.2k,1 2,ceil_b_12 ceil_b_14,trace,
+R35,ceiling B,1.6k,1 2,ceil_b_14 ceil_b_16,trace,
+R36,ceiling B,1.3k,1 2,ceil_b_16 ceil_b_18,trace,
+R37,ceiling B,1.1k,1 2,ceil_b_18 ceil_b_20,trace,
+R38,output,1k,end_a wiper end_b,a1_out out_pot_wiper in_low,trace,Taper unknown
+R39,output,62k,1 2,a2_plus in_low,trace,
+R40,output,1k,1 2,a2_minus a2_fb_ac,trace,
+R41,output,20k,1 2,a2_minus a2_out,trace,
+R43,detector,1k,end_a wiper end_b,in_low in_pot_wiper link_input,trace,Taper unknown
+R44,mode,200 ohm,1 2,s1c_bottom_a s1c_bottom_b,trace,
+R45,de-ess,51 ohm,1 2,deess_ac s4_lower_b,trace,
+R46,detector,100k,1 2,a3_fb_mid a3_fb_out,trace,
+R47,detector,75k,1 2,a3_minus a3_fb_mid,trace,
+R48,release,1k,1 2,release_rect q2_base,trace,
+R49,release,47k,1 2,q4_emitter in_low,trace,
+R50,detector,910k,1 2,detector_control override_ac,trace,
+R51,detector,16k,1 2,neg_rail override_bias,trace,
+R52,detector,47k,end_a wiper end_b,override_bias in_low in_low,trace,Release override trim
+R53,meter,500 ohm,1 2,meter_rect meter_trim_top,trace,
+R54,meter,7.5k,1 2,meter_clamp_top meter_trim_wiper,trace,
+R55,meter,10k,end_a wiper end_b,meter_trim_top meter_trim_wiper in_low,trace,Meter calibration trim
+R56,release,1k,1 2,neg_rail release_bias_ac,trace,
+R57,release,100k,1 2,neg_rail q4_base,trace,
+R58,release,10k,1 2,q4_base in_low,trace,
+R59,release,15M,1 2,release_time_sw release_series_mid,trace,
+R60,release,1M,1 2,rel_slow_tap release_time_sw,trace,
+R61,release,4.7M,1 2,release_feed rel_mid_tap,trace,
+R62,release,20M,1 2,rel_mid_tap rel_slow_tap,trace,
+R63,link,150 ohm,1 2,edge_8 link_input,trace,
+R64,output,33k?,1 2,a2_input_ac in_low,value-open,Across ladder termination; confirm decimal placement
+R65,detector,3.9k?,1 2,a3_plus in_low,value-open,Scan reading tentative
+R66,release,15M?,1 2,release_series_mid q4_emitter,value-open,Designator scan check
+R68,meter,1.5k,1 2,meter_sw_feedback meter_clamp_top,trace,
+R70,release,5.6k,1 2,q2_base in_low,trace,
+R71,detector,1k,1 2,a3_out a3_fb_out,trace,
+R72,limit,3.9k?,1 2,pos_rail limit_upper,value-open,Scan reading tentative
+R73,limit,3.9k?,1 2,neg_rail limit_lower,value-open,Scan reading tentative
+R74,limit,unclear,1 2,s1b_common_b limit_rect,value-open,Ink masks resistor value
+R75,limit,2k?,end_a wiper end_b,limit_upper limit_lower limit_lower,value-open,Limit gain trim
+R76,detector,2.7k,1 2,t2_high release_rect_hi,trace,
+R77,detector,2.7k,1 2,release_rect_lo t2_low,trace,
+R78,FET,1k,1 2,a1_plus q5_base,trace,
+R79,FET,10k,1 2,linear_drive pos_rail,trace,
+C1,FET,250u 6V,+ -,a1_minus fet_drain,trace,
+C2,FET,0.1u,1 2,linear_drive linear_ac,trace,
+C3,FET,0.1u,1 2,detector_control in_low,trace,
+C5,output,5u? 25V,+ -,a2_plus a2_input_ac,value-open,Scan reading tentative
+C6,output,47p,1 2,a2_plus in_low,trace,
+C7,output,33u 16V,+ -,a2_fb_ac in_low,trace,
+C8,output,47p,1 2,a2_minus a2_out,trace,
+C9,detector,320u 2.5V,+ -,s1c_bottom_b in_low,trace,Connected to the COMP switch lower contact
+C10,de-ess,0.33u? 35V,+ -,deess_ac in_low,value-open,Scan reading tentative
+C11,de-ess,0.033u,1 2,a3_minus a3_fb_mid,trace,
+C12,meter,5u? 25V,+ -,meter_trim_top in_low,value-open,Scan reading tentative
+C13,detector,0.1u,1 2,release_rect_hi t2_ct,trace,
+C14,detector,0.1u,1 2,t2_ct release_rect_lo,trace,
+C15,supply,10u 25V,+ -,in_low neg_rail,trace,
+C16,supply,10u 25V,+ -,pos_rail in_low,trace,
+C17,limit,33u 16V,+ -,limit_upper supply_com,trace,
+C18,limit,33u 16V,+ -,supply_com limit_lower,trace,
+C19,release,10u 25V,+ -,q4_base release_bias_ac,trace,
+C20,FET,150p,1 2,a1_minus a1_out,trace,
+C21,release,22u 35V?,+ -,in_low q4_emitter,value-open,Handwritten sign and value require clean scan
+CR1,detector,unspecified,A K,release_rect release_rect_hi,model-open,
+CR2,detector,unspecified,A K,release_rect release_rect_lo,model-open,
+CR3,meter,unspecified,A K,t2_high meter_rect,model-open,
+CR4,meter,unspecified,A K,t2_low meter_rect,model-open,
+CR5,detector,unspecified,A K,override_bias override_ac,model-open,
+CR6,meter,unspecified,A K,meter_trim_wiper meter_clamp_top,model-open,
+CR7,limit,unspecified,A K,limit_rect limit_upper,model-open,
+CR8,limit,unspecified,A K,limit_lower limit_rect,model-open,
+CR9,supply,unspecified,A K,edge_12 pos_rail,model-open,
+CR10,supply,unspecified,A K,neg_rail edge_14,model-open,
+CR11,detector,unspecified,A K,detector_control t2_high,model-open,
+CR12,detector,unspecified,A K,detector_control t2_low,pin-open,Confirm polarity from higher contrast drawing
+Q1,FET,VCR2N,D G S,fet_drain fet_gate in_low,model-open,Package orientation and lot-specific curves still required
+Q2,release,2N5087?,C B E,in_low q2_base q4_base,model-open,Printed marking and pinout require cross-check
+Q4,release,2N5087?,C B E,release_time_sw q4_base q4_emitter,model-open,Printed marking and pinout require cross-check
+Q5,FET,2N5087?,C B E,neg_rail q5_base linear_drive,model-open,Printed marking and pinout require cross-check
+A1,gain,2520,+ - OUT V+ V- COM,a1_plus a1_minus a1_out pos_rail neg_rail in_low,model-open,Vintage module revision unproven
+A2,output,2520,+ - OUT V+ V- COM,a2_plus a2_minus a2_out pos_rail neg_rail in_low,model-open,Vintage module revision unproven
+A3,detector,2520,+ - OUT V+ V- COM,a3_plus a3_minus a3_out pos_rail neg_rail supply_com,model-open,Vintage module revision unproven
+T1,output,unspecified,RED RED_YEL BLU BLU_YEL BRN BRN_YEL,a2_out in_low edge_2 t1_secondary_join t1_secondary_join edge_3,model-open,Two series secondary sections shown; actual winding parameters and core needed
+T2,detector,unspecified,Pdot Pother Sdot Sct Sother,a3_out in_low t2_high t2_ct t2_low,model-open,Center tap drawn on common return; labels and winding parameters need verification
+M1,meter,unspecified,+ -,meter_mode_common in_low,model-open,No movement impedance or calibration in drawing
+DS1,lamp,unspecified,1 2,s1a_pin8 lamp_join,model-open,Series lamp
+DS2,lamp,unspecified,1 2,lamp_join edge_10,model-open,Series lamp
+S1A,mode,OFF interlocked,1 2 3 4 5 6 7 8 9 10 11 12,meter_sw_feedback ceil_b_20 meter_mode_common a2_input_ac NC edge_9 NC s1a_pin8 NC edge_11 NC NC,pin-open,Contact pairs inferred from switch drawing; lamp deck wiring needs confirmation
+S1B,mode,LIMIT interlocked,top_a top_b common_a common_b bottom_a bottom_b,ceil_a_wiper NC s1b_common_a s1b_common_b in_pot_wiper limit_feedback,pin-open,Confirm draw state against switch assembly
+S1C,mode,COMP interlocked,top_a top_b common_a common_b bottom_a bottom_b,NC NC a3_fb_out comp_common_b s1c_bottom_a s1c_bottom_b,pin-open,Confirm return legs and R44 connection
+S2,release,alternate action,top_a top_b common_a common_b bottom_a bottom_b,release_feed NC rel_mid_tap NC NC NC,pin-open,Second toggle pole appears unwired
+S3,release,alternate action,top_a top_b common_a common_b bottom_a bottom_b,rel_mid_tap NC rel_slow_tap NC release_time_sw NC,pin-open,Recheck contact sequence against assembly
+S4,de-ess,alternate action,top_a top_b common_a common_b bottom_a bottom_b,a3_fb_mid NC a3_minus deess_mode_return NC s4_lower_b,pin-open,Recheck normal and pressed connectivity
+S5A,ceiling,deck A 11 positions,C 0 2 4 6 8 10 12 14 16 18 20,ceil_a_wiper in_low ceil_a_2 ceil_a_4 ceil_a_6 ceil_a_8 ceil_a_10 ceil_a_12 ceil_a_14 ceil_a_16 ceil_a_18 in_pot_wiper,trace,
+S5B,ceiling,deck B 11 positions,C 0 2 4 6 8 10 12 14 16 18 20,out_pot_wiper ceil_b_0 ceil_b_2 ceil_b_4 ceil_b_6 ceil_b_8 ceil_b_10 ceil_b_12 ceil_b_14 ceil_b_16 ceil_b_18 ceil_b_20,trace,
+JP,link,strap for mono,1 2,edge_8 link_input,trace,External mono strap between edge contacts 8 and 7
+J1,connector,edge,1 2 3 4 5 6 7 8 9 10 11 12 13 14,chassis edge_2 edge_3 in_low edge_5 in_low link_input edge_8 edge_9 edge_10 edge_11 edge_12 supply_com edge_14,trace,Pin numbers belong to vintage drawing only

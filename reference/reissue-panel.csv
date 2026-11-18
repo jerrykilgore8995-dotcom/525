@@ -1,0 +1,15 @@
+item,center_x_frac,center_y_frac,width_frac,height_frac,note
+top mount,0.500,0.031,0.122,0.041,Retain mounting profile
+model marking,0.808,0.037,,,525
+in knob,0.283,0.116,0.300,0.093,Green cap and metallic skirt
+out knob,0.682,0.116,0.300,0.093,Green cap and metallic skirt
+GR meter,0.508,0.280,0.500,0.096,Use requested horizontal 0 to 25 dB display within aperture
+release 1,0.333,0.478,0.145,0.046,Black square
+release 2,0.333,0.551,0.145,0.046,Black square
+compress,0.670,0.433,0.160,0.047,White square
+limit,0.670,0.509,0.160,0.047,White square
+off,0.673,0.584,0.160,0.047,White square
+bypass,0.673,0.660,0.160,0.047,White square
+de-ess,0.333,0.624,0.145,0.046,Black square
+ceiling knob,0.442,0.840,0.450,0.133,Red cap metallic skirt and long pointer
+bottom mount,0.511,0.970,0.133,0.043,Retain mounting profile

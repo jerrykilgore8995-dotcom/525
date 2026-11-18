@@ -1,0 +1,29 @@
+# 525 circuit reconstruction
+
+## Reference status
+
+Gate 1 is open for the 500-series reissue. No qualified reissue component schematic, BOM, or complete board trace was available in the examined sources. The public reissue manual defines the control behavior and electrical limits. The vintage 525C scan provides component evidence for its own circuit. The reissue has active balanced input, 2510 and 2520 stages, and a power-fail bypass relay. The vintage 525C drawing has a single-ended gain-stage input, three 2520 modules, T1 output and T2 detector transformers, and no reissue relay drawing. Keep the revision identities separate throughout modeling and validation.
+
+| Artifact | Evidence recorded | Open verification |
+| --- | --- | --- |
+| [525C component trace](525c-components.csv) | 120 worksheet rows from the vintage sheet, including connectors, switching assemblies, strap, windings, internal trim endpoints and meter wiring. Symbol pin order is explicit and does not imply a physical footprint order. | 78 rows have a direct visual trace. 12 have unclear values or reference designators, 7 have open switch/pin readings, and 23 have device/model evidence outstanding. These are trace counts, not a manufacturing BOM or a second-pass sign-off. |
+| [Original JE-990 audit](je990-components.csv) | 44 component rows, using the original Jensen component list, ±15 V bias resistors, and shared circuit wiring from the Hardy drawing. | Audit directly against original Fig. 6 when the clear sheet is accessible. Verify matched LM394H pair, semiconductor models, diode thermal coupling and ferrite behavior. Determine whether the external isolator belongs in each application. |
+| [Reissue panel functions](reissue-controls.csv) | All mode selections and REL combinations, D-S, Ceiling, input, output and meter function. | Directly verify switch contacts, actual detents, track laws, calibration and gain-reduction meter response. |
+| [Faceplate measurements](reissue-panel.csv) | Relative placement from original reissue photography compared with the official manual. | Check per-unit artwork and control geometry when implementing the native editor. |
+
+`in_low`, `supply_com`, and chassis remain distinct in the vintage worksheet. Confirm fixture and module bonds from the correct edge connector evidence. `NC` records a visibly unwired switch terminal. Repeated terminals on trims and transformer leads show connections within the scan. Retain the original pole and winding identities when converting to named SPICE nodes.
+
+The vintage S5A/B deck positions are marked 0–20 in steps of two. The corresponding markings on the reissue faceplate do not establish the underlying contact count or gain law. Both matrix sizes are provisional until the reissue control is traced. The vintage 525C OFF bank is a different assembly from the reissue's BYP relay.
+
+Jensen's original paper specifies 33 kΩ for R10/R11 at ±15 V. Hardy lists 33.2 kΩ for its early 990/990A variants at ±15 V and 15.0 kΩ for the 990C arrangement. The initial worksheet follows Jensen with CR3 retained and without the later Hardy current-source variation. The paper gives actual JE-990 bench conditions at ±15 V, including 7 Vrms output and a 150 Ω load for the specified loaded test. Use those conditions for the alternate op-amp bench after the full schematic gate passes.
+
+## Evidence still needed to finish Gate 1
+
+1. For the target serial and PCB revision, obtain the complete schematic, service BOM and calibration procedure, or trace both board faces and all linked switch cards with tagged continuity. Identify every resistor/capacitor value, trim and contact. Include the active input, detector, control rails/protection, meter, relay contacts and coil circuit, and the edge connector.
+2. Read the manufacturer and part markings on the fitted 2510, 2520, FET and transformers. Obtain internal op-amp schematics or trace the identified modules with all terminals. An external 2520 footprint, a manufacturer's test jig or a third-party clone BOM alone cannot establish the internals of the fitted modules. Original Jensen 990 remains an alternate limited to the verified 2520 sockets.
+3. Record transformer pinout, ratios, winding DCR, open/shorted winding inductance and loss, frequency/phase response under the specified load, parasitics, and core saturation behavior. Record FET pinout, I–V, resistance vs gate bias, leakage and capacitance. Obtain board-revision and component-tolerance evidence or label each missing quantity.
+4. When a complete trace and models are available, reconcile the connected netlist against both the component ledger and the front-panel truth table in a second independent visual pass. Verify all circuit paths and hardware fixture connections before any operating-point, AC or transient analysis.
+
+Historical factory test material is indexed by Furball Audio and discussed in GroupDIY's API archive. The document pages that could be retrieved here contained no complete compatible reissue schematic. Historical material, once obtained, still needs the serial or revision matched before its values are used. Compare hardware tests against their actual rails and load and retain the requested ±15 V reference inlet separately.
+
+No simulation or VST3 build was started at this checkpoint. The committed matrix is a generator for configuration IDs. Its full-grid counts are 7,181,504 with 11 ceiling states and 65,939,264 with 101, before any stimulus multipliers. It contains no measurement results.

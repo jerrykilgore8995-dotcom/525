@@ -1,0 +1,15 @@
+control,setting,user_guide_behavior,electrical_scope_open
+mode,C,2:1 compression,Switch contacts and detector feedback implementation
+mode,L,20:1 limiting,Switch contacts and detector feedback implementation
+mode,OFF,Gain reduction off while audio remains in circuit,Switch contacts and remaining gain path
+mode,BYP,Relay bypass and power-fail bypass,Relay part number contacts coil and drive circuit
+release,00,0.1 s,Network values and measurement definition
+release,10,0.5 s,Network values and measurement definition
+release,01,2.0 s,Network values and measurement definition
+release,11,2.5 s,Network values and measurement definition
+D-S,off,Normal detector response,Exact switch and filter connections
+D-S,on,De-essing enabled,Exact filter transfer and component values
+ceiling,0 through 20,More compression and makeup with increased setting,Number of detents switch contact routing or potentiometer law
+input,rotation,Threshold adjustment,Track resistance taper and loading
+output,rotation,Makeup adjustment,Track resistance taper and loading
+meter,GR,Analog gain reduction indication,Driver calibration movement load ballistics and illumination

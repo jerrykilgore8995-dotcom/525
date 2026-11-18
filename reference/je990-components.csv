@@ -1,0 +1,45 @@
+refdes,printed_value_or_type,pins_in_listed_order,nets_in_pin_order,note
+Q1,LM394H half,C B E,mirror_ref in_minus q1_emitter,Share matched device with Q2
+Q2,LM394H half,C B E,vas_in in_plus q2_emitter,Share matched device with Q1
+Q3,2N4250A,C B E,vas_in mirror_ref q3_emitter,
+Q4,2N2484,C B E,tail tail_bias q4_emitter,
+Q5,2N4250A,C B E,v_minus vas_in vas_drive,
+Q6,2N4250A,C B E,bias_high vas_drive q6_emitter,
+Q7,2N2484,C B E,bias_low sink_bias q7_emitter,
+Q8,MJE181,C B E,v_plus bias_high q8_emitter,Match protection and bias diodes under thermal tracking per the paper
+Q9,MJE171,C B E,v_minus bias_low q9_emitter,Match protection and bias diodes under thermal tracking per the paper
+R1,30 ohm,1 2,q1_emitter tail,Parallel to L1
+R2,30 ohm,1 2,tail q2_emitter,Parallel to L2
+R3,160 ohm,1 2,q4_emitter v_minus,
+R4,300 ohm,1 2,v_plus mirror_emitter,Trim for DC balance if evidenced
+R5,300 ohm,1 2,v_plus q3_emitter,Trim for DC balance if evidenced
+R6,2k,1 2,v_plus vas_drive,
+R7,180 ohm,1 2,v_plus q6_emitter,
+R8,300 ohm,1 2,v_plus hf_damp,
+R9,130 ohm,1 2,vas_in comp_ac,
+R10,33k,1 2,v_plus tail_bias,Original ±15 V value per Fig. 6 note 2
+R11,33k,1 2,v_plus sink_bias,Original ±15 V value per Fig. 6 note 2
+R12,110 ohm,1 2,q7_emitter v_minus,
+R13,3.9 ohm,1 2,q8_emitter feedback,
+R14,3.9 ohm,1 2,feedback q9_emitter,
+R15,39 ohm,1 2,feedback output,Optional external isolator drawn in Jensen Fig. 6; confirm integration
+C1,150p,1 2,comp_ac comp_diode,
+C2,62p,1 2,v_plus q6_emitter,
+C3,91p,1 2,hf_damp q6_emitter,
+C4,0.1u,1 2,v_plus common,
+C5,0.1u,1 2,common v_minus,
+L1,20u,1 2,q1_emitter tail,Lossy ferrite bead measured separately
+L2,20u,1 2,tail q2_emitter,Lossy ferrite bead measured separately
+L3,40u,1 2,feedback output,Optional external isolator in original paper; Hardy value and designation differ
+CR1,1N914B,A K,in_minus in_plus,
+CR2,1N914B,A K,in_plus in_minus,
+CR3,1N914B,A K,mirror_emitter mirror_ref,Original Jensen design uses diode; Hardy uses Q10 instead
+CR4,1N914B,A K,bias_high comp_diode,
+CR5,1N914B,A K,tail_bias cr56,
+CR6,1N914B,A K,cr56 v_minus,
+CR7,1N914B,A K,sink_bias cr78,
+CR8,1N914B,A K,cr78 v_minus,
+CR9,1N914B,A K,bias_high bias_mid,Thermally coupled to Q8
+CR10,1N914B,A K,bias_mid bias_low,Thermally coupled to Q9
+CR11,1N914B,A K,feedback bias_high,
+CR12,1N914B,A K,bias_low feedback,
