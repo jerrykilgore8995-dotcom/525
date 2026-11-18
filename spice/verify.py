@@ -50,7 +50,7 @@ def run_fixture(args, name, params, *, ac=False, coupling=None):
     return solve_deck(args, dest, raw, deck, 5 if ac else 9)
 
 
-def solve_deck(args, dest, raw, deck, columns):
+def solve_deck(args, dest, raw, deck, columns, *, min_rows=2):
     deck_path = dest / "fixture.cir"
     log_path = dest / "ngspice.log"
     deck_path.write_text(deck)
@@ -68,7 +68,7 @@ def solve_deck(args, dest, raw, deck, columns):
         data = np.loadtxt(raw, skiprows=1, ndmin=2)
     except ValueError:
         return "invalid_waveform", None
-    if len(data) < 2 or data.shape[1] != columns or not np.isfinite(data).all():
+    if len(data) < min_rows or data.shape[1] != columns or not np.isfinite(data).all():
         return "invalid_waveform", None
     return "complete", data
 

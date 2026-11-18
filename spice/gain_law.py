@@ -35,6 +35,8 @@ def gain_curve(args, case):
             line = source_text(LEVELS)
         if line.startswith("fourier "):
             continue
+        if line.startswith("tran "):
+            deck.append("save " + " ".join(f"v({node})" for node in COLUMNS))
         if line.startswith("wrdata "):
             line = f"wrdata {path.relative_to(args.output)} " + " ".join(f"v({node})" for node in COLUMNS)
         deck.append(line)
@@ -118,6 +120,9 @@ def main():
     print(f"{args.pair} {args.mode}: {good}/{len(curves)} curves; "
           f"{sum(r['within_10pct'] for r in eligible)}/{len(eligible)} eligible windows within 10%")
     if good != len(curves):
+        for curve in curves:
+            if curve[0]["solver"] != "complete":
+                print(curve[0]["id"], curve[0]["solver"])
         raise SystemExit(1)
 
 
