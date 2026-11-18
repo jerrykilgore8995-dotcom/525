@@ -5,7 +5,7 @@ The vintage 525C circuit runs with the AP2623-ratio detector candidate and provi
 | Measurement | Evidence |
 | --- | --- |
 | Stock and Mod gain laws, attack, release, phase and harmonics | [Reference index](../README.md) |
-| AC at fixed IN and OUT | 1,056 cases for each source/load fixture. Both amplifier pairings, four Compress ratios, Limit, OFF, four release selections, both D-S states and eleven Ceiling positions. Both 150 Ω/2 kΩ and 150 Ω/20 kΩ also completed locally at the fixed pot anchor, alongside 150 Ω/10 kΩ. |
+| AC at fixed IN and OUT | 1,056 cases for each source/load fixture. Both amplifier pairings, four Compress ratios, Limit, OFF, four release selections, both D-S states and eleven Ceiling positions. All six GitHub fixtures (50/150/600 Ω source × 600 Ω/10 kΩ load) completed, for 6,336 cases. Both 150 Ω/2 kΩ and 150 Ω/20 kΩ also completed locally at the fixed pot anchor, alongside 150 Ω/10 kΩ. |
 | AC at 1% pot resolution | 10,772,256 distinct vintage configurations per source/load fixture. The 1,056-case IN 25% / OUT 75% shard at 150 Ω / 10 kΩ completed locally. A separate 32-case shard completed and reused the archived traces successfully. |
 | IMD | The CI job measures two coherent stimulus pairs, two drive levels, both amplifier pairings and six mode/ratio configurations. Each CSV records individual product levels and their summed energy relative to the upper tone. |
 | Noise | [24 of 24 linearized sweeps](525c-noise-reference.csv) completed, covering both amplifier pairings and 600 Ω/10 kΩ. Noise integrates 20 Hz to 20 kHz around the idle operating point. These are model-card noise predictions. Driven residual remains a separate measurement. |
@@ -30,3 +30,5 @@ python3 spice/input_impedance.py --output evidence/input-z
 The runner checks the simulator, stimulus, circuit and measurement-code fingerprints before resuming. An existing valid trace and per-case result are reused. Missing or failed cases run again. Tone rows with excessive late-window drift also rerun. Changing the duration or circuit needs a new evidence directory. A completed waveform establishes coverage for that stimulus and control ID. It is not a hardware-match assertion.
 
 [Control coverage and two-tone raw traces](https://github.com/jerrykilgore8995-dotcom/525/actions/runs/44258411537) · [Noise sweeps](https://github.com/jerrykilgore8995-dotcom/525/actions/runs/44258411594) · [Targeted Mod attack retries](https://github.com/jerrykilgore8995-dotcom/525/actions/runs/44259000497)
+
+The JE-990 audio / 2520 detector +4 dBu crest tests for Mod 8:1 and 12:1 both completed at 125 ns and 62.5 ns integration ceilings. The 10–90% attack measurements were 11.546 and 10.148 µs respectively, with less than 0.001 µs difference between those solver steps. The earlier 250 ns attempts did not converge within the time budget. [Attack step comparison](525c-mod-crest-convergence.csv)

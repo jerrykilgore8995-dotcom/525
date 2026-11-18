@@ -159,7 +159,7 @@ def main():
     parser.add_argument("--comp-r44", type=float, default=200)
     parser.add_argument("--attack-phase", type=int, choices=(0, 90), nargs="+", default=(0, 90))
     parser.add_argument("--attack-drive", type=int, choices=(BURST_DBU, 4), nargs="+", default=(BURST_DBU, 4))
-    parser.add_argument("--attack-step", type=float, choices=(2.5e-7, 1.25e-7), nargs="+",
+    parser.add_argument("--attack-step", type=float, choices=(2.5e-7, 1.25e-7, 6.25e-8), nargs="+",
                         default=(2.5e-7, 1.25e-7))
     parser.add_argument("--output", type=lambda p: Path(p).resolve(), required=True)
     parser.add_argument("--workers", type=int, default=4)
