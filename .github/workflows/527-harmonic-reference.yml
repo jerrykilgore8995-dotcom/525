@@ -1,0 +1,37 @@
+name: Targeted high-drive 525 references for 527
+on:
+  push:
+    paths: ['.github/workflows/527-harmonic-reference.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  measure:
+    runs-on: ubuntu-24.04
+    container: debian:13.6-slim
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        hz: [1000, 5000, 10000]
+        level: [10, 18]
+        slot: [0, 2]
+    env:
+      OPENBLAS_NUM_THREADS: 1
+    steps:
+      - run: |
+          apt-get update
+          apt-get install --yes --no-install-recommends ca-certificates git ngspice=44.2+ds-1 python3 python3-numpy
+      - uses: actions/checkout@v4
+      - name: Retry matching high drive reference
+        run: |
+          python3 spice/harmonic_pots.py --input 50 --outs 75 --hz ${{ matrix.hz }} --dbu ${{ matrix.level }} --slot ${{ matrix.slot }} --workers 1 --timeout 900 --output measurements
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ref-${{ matrix.hz }}-${{ matrix.level }}-${{ matrix.slot }}
+          path: |
+            measurements/harmonic-pots.csv
+            measurements/matrix.json
+            measurements/**/result.json
+          if-no-files-found: warn
