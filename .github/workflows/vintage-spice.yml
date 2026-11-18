@@ -23,7 +23,7 @@ jobs:
           mkdir ../evidence
           python3 audit.py > ../evidence/component-mapping.txt
           ngspice --version > ../evidence/ngspice-version.txt
-          for opamp in 2520 2520-drawing 990; do
+          for opamp in 2520 2520-q9 2520-drawing 990; do
             for mode in C L OFF; do
               for index in 0 5 10; do
                 name="$opamp-$mode-$index"
@@ -44,5 +44,43 @@ jobs:
           name: Vintage-525C-SPICE-diagnostics
           path: |
             evidence/
+            spice/*.lib
+            reference/SPICE.md
+  characterization:
+    runs-on: ubuntu-24.04
+    container: debian:13.6-slim
+    strategy:
+      fail-fast: false
+      matrix:
+        pairing:
+          - { amplifiers: '2520/2520', artifact: '2520' }
+          - { amplifiers: '990/990', artifact: '990' }
+          - { amplifiers: '990/2520', artifact: '990-2520' }
+    steps:
+      - run: |
+          apt-get update
+          apt-get install --yes --no-install-recommends ca-certificates git ngspice=44.2+ds-1 python3
+      - uses: actions/checkout@v4
+      - name: Run sine and convergence cases
+        working-directory: spice
+        env:
+          AMPLIFIERS: ${{ matrix.pairing.amplifiers }}
+        run: |
+          python3 characterize.py --output ../measurements --pair "$AMPLIFIERS" --timeout 25 --keep-all
+          test "$(wc -l < ../measurements/metrics.csv)" -eq 35
+          grep -q ',complete,' ../measurements/metrics.csv
+      - name: Capture detector and gain recovery
+        if: matrix.pairing.artifact == '2520'
+        working-directory: spice
+        run: |
+          python3 fixture.py --input .9 --ceiling 8 --mode C --dbu -30 --burst-dbu 4 --seconds .3 --transient --max-step 2e-6 --trace ../measurements/burst.dat > ../measurements/burst.cir
+          timeout 45 ngspice -b ../measurements/burst.cir > ../measurements/burst.log 2>&1
+          test -s ../measurements/burst.dat
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Vintage-525C-measurements-${{ matrix.pairing.artifact }}
+          path: |
+            measurements/
             spice/*.lib
             reference/SPICE.md

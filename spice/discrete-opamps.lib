@@ -40,7 +40,7 @@ D3 bias_lower out A525_MZ2361
 * Q9 diagnostic variant: the base drive comes from the Q9 collector.
 * R9 remains at the original value and is in the Q9 emitter leg.
 * Engineering interpretation of the redraw, pending a corroborating trace.
-.subckt DOA2520_Q9_TEST ip im out vp vn com
+.subckt DOA2520_Q9_CORE ip im out vp vn c5_return q2c params: c5_value=47p
 Q1 q1c ip tail A525_MATCH_N
 Q2 q2c im tail A525_MATCH_N
 Q3 q3c q2c front_tail A525_TIS98
@@ -70,11 +70,22 @@ C1 r2_ac q2c 1000p
 C2 q3c q9_ac 47p
 C3 q5_ac bias_lower 47p
 C4 vp q1c 39p
-C5 q2c bias_lower 47p
+C5 c5_return bias_lower {c5_value}
 D1 driver_upper bias_lower A525_MZ2361
 D2 out driver_upper A525_MZ2361
 D3 bias_lower out A525_MZ2361
+.ends DOA2520_Q9_CORE
+
+* Preserve the original connection for A/B diagnostics.
+.subckt DOA2520_Q9_TEST ip im out vp vn com
+Xcore ip im out vp vn q2c q2c DOA2520_Q9_CORE
 .ends DOA2520_Q9_TEST
+
+* Alternative C5 placement at the inverting input. The builders' -IN and
+* 10 pF reports are design leads; this combination is not an API-verified card.
+.subckt DOA2520_10P ip im out vp vn com
+Xcore ip im out vp vn im q2c DOA2520_Q9_CORE c5_value=10p
+.ends DOA2520_10P
 
 * Jensen Fig. 6, original JE-990, with R10 and R11 for +/-15 V.
 * Raw output is the feedback node. The application-dependent isolator is separate.

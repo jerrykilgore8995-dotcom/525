@@ -120,7 +120,7 @@ C11 a3_minus a3_fb_mid .033u
 R46 a3_fb_mid a3_fb_out 100k
 R71 a3_out a3_fb_out 1k
 R65 a3_plus in_low 3.9k
-XA3 a3_plus a3_minus a3_out pos_rail neg_rail com ACTIVE_DOA
+XA3 a3_plus a3_minus a3_out pos_rail neg_rail com DETECTOR_DOA
 XT2 a3_out in_low t2_high in_low t2_low T525C_DETECTOR
 * Detector, release override and meter rectifier.
 R76 t2_high release_rect_hi 2.7k

@@ -74,7 +74,7 @@ def main():
     drawn = elements(amp_path, "DOA2520_DRAWN")
     target = {f"{kind}{i}" for kind, n in (("Q", 9), ("R", 16), ("C", 5), ("D", 3))
               for i in range(1,n+1)}
-    corrected = elements(amp_path, "DOA2520_Q9_TEST")
+    corrected = elements(amp_path, "DOA2520_Q9_CORE")
     if set(drawn) != target or set(corrected) != target:
         raise SystemExit("2520 drawing / netlist reference count mismatch")
     print(f"525C {len(rows)} worksheet rows mapped to {len(actual)} circuit/fixture entries")
