@@ -88,3 +88,5 @@ The [measured calibration points](reference/525c-mod-ratios.csv) use ngspice 44.
 The ratios are local slopes, with threshold and curvature changing along with R44. The [Mod characterization workflow](.github/workflows/vintage-ratio-mod.yml) measures the resulting curves across IN and Ceiling and records phase, distortion, attack and release for each ratio with both amplifier pairings. The Windows editor and the reduced compressor using these curves are still pending.
 
 The [8:1 harmonic measurements](reference/525c-mod-8-harmonics.csv) capture K2–K20 and fundamental phase. With all-2520, D-S off and −18 dBu, THD is 0.1111%, 0.01936%, 0.02174%, and 0.02424% at 100 Hz, 1 kHz, 5 kHz, and 10 kHz. These are analog bandwidth figures under the measured drive conditions. [Extended characterization results](https://github.com/jerrykilgore8995-dotcom/525/actions/runs/44256694480)
+
+The [coverage ledger](reference/COVERAGE.md) tracks the exact pot matrix, switch coverage, noise, IMD, and work still required for the VST3 reference.

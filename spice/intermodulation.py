@@ -45,7 +45,7 @@ def measure(args, case):
                     f"Vtone2 src mix SIN(0 {p2:.15g} {f2})")
         if line.startswith("tran "):
             lines.append("save v(src) v(oh)")
-        if line.startswith("fourier "):
+        if line.startswith(("fourier ", "meas tran ")):
             continue
         if line.startswith("wrdata "):
             lines.append("set numdgt=16")
@@ -59,11 +59,18 @@ def measure(args, case):
     if data[-1,0] < END - 1e-8 or np.any(np.diff(data[:,0]) <= 0):
         return {**row, "solver": "incomplete_trace"}
     n = round(RATE*WINDOW)
-    wave = np.interp(END-WINDOW+np.arange(n)/RATE, data[:,0], data[:,2])
+    times = END-WINDOW+np.arange(n)/RATE
+    wave = np.interp(times, data[:,0], data[:,2])
+    source = np.interp(times, data[:,0], data[:,1])
     spectrum = np.fft.rfft(wave)*2/n
+    source_bins = np.fft.rfft(source)*2/n
     fundamental = abs(spectrum[round(f2*WINDOW)])
     row["f1_out_dbu"] = db(spectrum[round(f1*WINDOW)]/(.775*np.sqrt(2)))
     row["f2_out_dbu"] = db(fundamental/(.775*np.sqrt(2)))
+    row["combined_source_dbu"] = db(np.sqrt(np.mean(source**2))/.775)
+    for i, hz in enumerate((f1, f2), 1):
+        k = round(hz*WINDOW)
+        row[f"f{i}_phase_deg"] = np.angle(spectrum[k]/source_bins[k], deg=True)
     # Keep the individual products so the host can compare the same convention.
     offsets = (-3, -2, -1, 1, 2, 3)
     products = ([f2+m*f1 for m in offsets] if stimulus == "smpte" else

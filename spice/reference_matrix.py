@@ -30,7 +30,7 @@ class Control:
 
 
 def axes(pots):
-    return PAIRS, MODES, RELEASE, (0, 1), range(11), pots, pots
+    return pots, pots, PAIRS, MODES, RELEASE, (0, 1), range(11)
 
 
 def control_at(index, grid):
@@ -38,7 +38,7 @@ def control_at(index, grid):
     for axis in reversed(grid):
         index, remainder = divmod(index, len(axis))
         values.append(axis[remainder])
-    pair, (mode, r44), release, deess, ceiling, inp, out = reversed(values)
+    inp, out, pair, (mode, r44), release, deess, ceiling = reversed(values)
     return Control(pair, mode, r44, release, deess, ceiling, inp, out)
 
 
@@ -110,7 +110,7 @@ def main():
     stop = args.stop if args.stop is not None else total
     if not args.output or not 0 <= args.start < stop <= total:
         parser.error("Provide an output directory and a nonempty valid range")
-    if args.hz <= 0 or args.seconds * args.hz < 13:
+    if args.family == "tone" and (args.hz <= 0 or args.seconds * args.hz < 13):
         parser.error("Tone must have at least 13 cycles")
     if args.source <= 0 or args.load <= 0 or args.workers <= 0 or args.timeout <= 0:
         parser.error("Fixtures and runtime limits must be positive")

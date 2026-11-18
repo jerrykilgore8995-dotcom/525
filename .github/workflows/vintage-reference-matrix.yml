@@ -4,10 +4,10 @@ on:
     inputs:
       start:
         description: First exact-grid AC case ID
-        default: '0'
+        default: '2745600'
       stop:
-        description: Exclusive exact-grid AC end ID (up to 1024 cases per manually submitted shard)
-        default: '256'
+        description: Exclusive exact-grid AC end ID (up to 2112 cases per manually submitted shard)
+        default: '2746656'
   push:
     paths:
       - 'spice/reference_matrix.py'
@@ -39,9 +39,9 @@ jobs:
         run: |
           python3 spice/reference_matrix.py ac --preset anchor --source "$SOURCE" --load "$LOAD" --output evidence/anchor
           if [ "$SOURCE" = 150 ] && [ "$LOAD" = 10000 ]; then
-            START=${REQUEST_START:-0}
-            STOP=${REQUEST_STOP:-256}
-            python3 -c 'import sys; a,b=map(int,sys.argv[1:]); sys.exit(0 if 0<b-a<=1024 else 1)' "$START" "$STOP"
+            START=${REQUEST_START:-2745600}
+            STOP=${REQUEST_STOP:-2746656}
+            python3 -c 'import sys; a,b=map(int,sys.argv[1:]); sys.exit(0 if 0<b-a<=2112 else 1)' "$START" "$STOP"
             python3 spice/reference_matrix.py ac --start "$START" --stop "$STOP" --output evidence/full
           fi
       - uses: actions/upload-artifact@v4
