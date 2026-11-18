@@ -39,40 +39,67 @@ public:
         const auto outCoefficients = OutputCeiling::calculate(next.output, next.ceiling, rate);
         harmonicOutputGain = outCoefficients.gain / (1-outCoefficients.highPole) * 21 * 1.96;
         const auto currentTap = detectorDrive(next.input, next.ceiling, slot == 4);
-        const auto referenceInput = slot == 4 ? .9 : .5;
-        const auto referenceTap = detectorDrive(referenceInput, 8, slot == 4);
+        const auto limitBlend = slot == 4 ? std::clamp((next.input - .5) / .4, 0.0, 1.0) : 0.0;
+        const auto anchor = limitBlend > 0 ? .9 : .5;
+        const auto referenceTap = detectorDrive(anchor, 8, slot == 4);
         baseline = 25.09;
         const auto shift = 20 * std::log10(std::max(1e-8, currentTap / referenceTap));
+        const auto alternateShift = 20 * std::log10(std::max(1e-8, currentTap / detectorDrive(.5, 8, slot == 4)));
         const int availableAmp = hasGain(next.amp, slot) ? next.amp : 0;
         for (std::size_t band = 0; band < toneBands.size(); ++band) {
             const auto hz = toneBands[band];
             for (std::size_t n = 0; n < gainTable[band].size(); ++n) {
                 const auto level = static_cast<double>(n) - 72 + shift;
-                const auto base = curve(availableAmp, slot, referenceInput, level);
-                const auto [lo, hi] = harmonicBracket(hz, level);
+                const auto base = curve(availableAmp, slot, anchor, level);
                 auto delta = 0.0;
-                if (lo != nullptr) {
+                // Keep the control-slope measurements authoritative inside their fit window.
+                const auto lookupLevel = hz == 1000 && slot < 4 && level >= -20 && level <= -16 ? -18 : level;
+                const auto [lo, hi] = harmonicBracket(hz, lookupLevel);
+                if (lo != nullptr && (slot < 4 || anchor == .9)) {
                     const auto offset = [&](const auto& row) {
-                        return row.a1GainDb - curve(availableAmp, slot, referenceInput, row.level);
+                        return row.a1GainDb - curve(availableAmp, slot, anchor, row.level);
                     };
-                    const auto weight = lo == hi ? 0 : (level-lo->level)/(hi->level-lo->level);
-                    const auto fade = std::clamp(1 - std::abs(level - std::clamp(level, lo->level, hi->level)) / 10,
+                    const auto weight = lo == hi ? 0 : (lookupLevel-lo->level)/(hi->level-lo->level);
+                    const auto fade = std::clamp(1 - std::abs(lookupLevel - std::clamp(lookupLevel, lo->level, hi->level)) / 10,
                                                   0.0, 1.0);
                     delta = std::lerp(offset(*lo), offset(*hi), weight) * fade;
+                    if (hz == 1000 && slot < 4 && level > -22 && level < -14) {
+                        const auto [atLo, atHi] = harmonicBracket(hz, -18);
+                        const auto central = atLo == atHi ? offset(*atLo) :
+                            std::lerp(offset(*atLo), offset(*atHi), (-18-atLo->level)/(atHi->level-atLo->level));
+                        const auto fitWeight = std::clamp((4 - std::abs(level + 18))/2, 0.0, 1.0);
+                        delta = std::lerp(delta, central, fitWeight);
+                    }
                 }
-                gainTable[band][n] = std::clamp(base + delta, 0.0, baseline);
+                auto gain = base + delta;
+                if (limitBlend > 0 && limitBlend < 1)
+                    gain = std::lerp(curve(availableAmp, slot, .5, static_cast<double>(n)-72+alternateShift),
+                                     gain, limitBlend);
+                gainTable[band][n] = std::clamp(gain, 0.0, baseline);
             }
         }
         const int releaseSlot = slot == 4 ? 0 : slot;
         constexpr std::array<double, 4> fallback{.1213, .5417, 1.8415, 2.2591};
         for (int n = 0; n < 2; ++n) {
             const auto hz = n == 0 ? 100 : 1000;
-            const data::ReleasePoint* found = nullptr;
-            for (const auto& r : data::release)
-                if (r.slot == releaseSlot && r.setting == next.release && r.hz == hz
-                        && (r.amp == next.amp || found == nullptr))
-                    found = &r;
-            releaseSeconds[n] = found == nullptr ? fallback[next.release] : found->seconds;
+            double lowInput = fallback[next.release];
+            double highInput = lowInput;
+            bool foundLow = false;
+            bool foundHigh = false;
+            for (const auto& r : data::release) {
+                if (r.slot != releaseSlot || r.setting != next.release || r.hz != hz || r.amp != next.amp)
+                    continue;
+                if (r.input == .5) {
+                    lowInput = r.seconds;
+                    foundLow = true;
+                } else if (r.input == .9) {
+                    highInput = r.seconds;
+                    foundHigh = true;
+                }
+            }
+            if (!foundHigh && foundLow)
+                highInput = lowInput;
+            releaseSeconds[n] = std::lerp(lowInput, highInput, std::clamp((next.input-.5)/.4, 0.0, 1.0));
         }
         for (std::size_t i = 0; i < attackCoefficients.size(); ++i) {
             const auto drive = i == 0 ? -18 : 4;

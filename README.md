@@ -102,3 +102,10 @@ The Windows x64 workflow packages the native JUCE VST3 and its SHA-256. It also 
 The plug-in runs native reduced-order processing with 2× internal oversampling and latency-compensated dry bypass. Mono uses one signal path. Stereo uses two independent paths and two gain reduction readings on the shared panel. Attack uses measured 10–90% anchors where available. Release uses the measured 63.2% points with frequency interpolation. These parameters require separate end-to-end timing verification.
 
 The 5–10% target remains open across the full control grid. The preview interpolates from sparse pot and level measurements. The measured harmonic tables provide amplitudes. Harmonic phase, the remaining Limit spectra, transformer saturation and load behavior, and control combinations outside the measured grid remain incomplete. Whole-path gain, phase and timing data must be verified before this build is considered final.
+
+At 1 kHz, the offline core sweep over −20 to −16 dBu measured about 2.04:1,
+4.15:1, 8.17:1, and 11.74:1 at the documented IN/OUT/Ceiling anchor.
+The Limit candidate measured 21.05:1 over +2 to +6 dBu at IN 50%.
+The 63.2% recovery crossings after a −18 to −30 dBu step at IN 90% were
+121, 538, 1825, and 2238 ms. These are fixed test conditions, with separate
+numerical checks required for other control settings.

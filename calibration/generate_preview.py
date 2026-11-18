@@ -27,14 +27,14 @@ def generate(folder):
                      *(10**(float(r[f"k{k}_dbc"])/20) for k in range(2,21))))
                 for r in read("harmonics.csv")]
     release = [row((amp(r), resistor(r), r["hz"], ("00","10","01","11").index(r["release"]),
-                    float(r["gain_t63_2_ms"])*.001)) for r in read("release.csv")]
+                    r["input_position"], float(r["gain_t63_2_ms"])*.001)) for r in read("release.csv")]
     attack = [row((amp(r), 4 if r["mode"] == "L" else resistor(r), r["drive_dbu"], r["crest_10_90_us"]))
               for r in read("attack.csv")]
     declarations = (
         ("AttackPoint", "int amp, slot; double level, spanUs;", "attack", attack),
         ("GainPoint", "int amp, slot; double input; int ceiling; double level, gain;", "gain", gain),
         ("HarmonicPoint", "int amp, slot, hz; double level, gainDb, phaseDeg, a1GainDb, magnitude[19];", "harmonics", harmonic),
-        ("ReleasePoint", "int amp, slot, hz, setting; double seconds;", "release", release),
+        ("ReleasePoint", "int amp, slot, hz, setting; double input, seconds;", "release", release),
     )
     with (folder / "PreviewData.h").open("w") as stream:
         stream.write("#pragma once\n\nnamespace vintage525::data {\n")

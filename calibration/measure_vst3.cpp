@@ -8,6 +8,11 @@
 #include <numbers>
 #include <stdexcept>
 #include <sstream>
+#include <vector>
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
 
 namespace {
 using Plugin = juce::AudioPluginInstance;
@@ -88,23 +93,70 @@ void render(Plugin& plugin, const vintage525::data::HarmonicPoint& point, std::o
         << percentile(.5) << ',' << percentile(.95) << ',' << percentile(.99) << ',' << blockMillis.back() << '\n';
 }
 
+juce::Image captureWindow(HWND handle)
+{
+    RECT bounds{};
+    GetClientRect(handle, &bounds);
+    const int width = bounds.right, height = bounds.bottom;
+    if (width <= 0 || height <= 0)
+        return {};
+    auto screen = GetDC(handle);
+    auto memory = CreateCompatibleDC(screen);
+    auto bitmap = CreateCompatibleBitmap(screen, width, height);
+    auto original = SelectObject(memory, bitmap);
+    PrintWindow(handle, memory, 2);
+    SelectObject(memory, original);
+    BITMAPINFO info{};
+    info.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    info.bmiHeader.biWidth = width;
+    info.bmiHeader.biHeight = -height;
+    info.bmiHeader.biPlanes = 1;
+    info.bmiHeader.biBitCount = 32;
+    info.bmiHeader.biCompression = BI_RGB;
+    std::vector<juce::uint32> pixels(static_cast<std::size_t>(width) * height);
+    GetDIBits(memory, bitmap, 0, height, pixels.data(), &info, DIB_RGB_COLORS);
+    const bool blank = std::all_of(pixels.begin(), pixels.end(), [colour=pixels.front()](auto p) { return p == colour; });
+    if (blank) {
+        SelectObject(memory, bitmap);
+        BitBlt(memory, 0, 0, width, height, screen, 0, 0, SRCCOPY);
+        SelectObject(memory, original);
+        GetDIBits(memory, bitmap, 0, height, pixels.data(), &info, DIB_RGB_COLORS);
+    }
+    DeleteObject(bitmap);
+    DeleteDC(memory);
+    ReleaseDC(handle, screen);
+    if (std::all_of(pixels.begin(), pixels.end(), [colour=pixels.front()](auto p) { return p == colour; }))
+        return {};
+    juce::Image result(juce::Image::RGB, width, height, false);
+    for (int y=0; y<height; ++y)
+        for (int x=0; x<width; ++x)
+            result.setPixelAt(x, y, juce::Colour(pixels[static_cast<std::size_t>(y)*width+x] | 0xff000000u));
+    return result;
+}
+
 void snapshot(Plugin& plugin, const juce::File& folder)
 {
     std::unique_ptr<juce::AudioProcessorEditor> editor(plugin.createEditorIfNeeded());
     if (!editor)
         throw std::runtime_error("VST3 did not create an editor");
-    if (auto* host = dynamic_cast<juce::Component*>(editor.get())) {
-        host->addToDesktop(0);
-        host->setVisible(true);
-        juce::PNGImageFormat png;
-        for (const float scale : {1.f, 1.5f, 2.f}) {
-            const auto output = host->createComponentSnapshot(host->getLocalBounds(), true, scale);
-            auto file = folder.getChildFile("editor-" + juce::String(juce::roundToInt(scale * 100)) + ".png");
-            if (auto stream = file.createOutputStream())
-                png.writeImageToStream(output, *stream);
+    editor->setTopLeftPosition(24, 24);
+    editor->addToDesktop(juce::ComponentPeer::windowHasTitleBar);
+    editor->setVisible(true);
+    juce::PNGImageFormat png;
+    for (const float scale : {1.f, 1.5f, 2.f}) {
+        editor->setScaleFactor(scale);
+        const auto handle = static_cast<HWND>(editor->getWindowHandle());
+        RedrawWindow(handle, nullptr, nullptr, RDW_UPDATENOW | RDW_INVALIDATE | RDW_ALLCHILDREN);
+        const auto output = captureWindow(handle);
+        if (!output.isValid()) {
+            std::cerr << "Native editor capture unavailable at " << scale << '\n';
+            continue;
         }
-        host->removeFromDesktop();
+        auto file = folder.getChildFile("editor-" + juce::String(juce::roundToInt(scale * 100)) + ".png");
+        if (auto stream = file.createOutputStream())
+            png.writeImageToStream(output, *stream);
     }
+    editor->removeFromDesktop();
 }
 }
 

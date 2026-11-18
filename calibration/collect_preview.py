@@ -46,6 +46,12 @@ def main():
             row["r44_ohm"] = int(float(row["r44_ohm"]))
             key = tuple(row[k] for k in ("pair","mode","r44_ohm","input_position","ceiling_mark","input_dbu"))
             curves.setdefault(key, {**row, "origin": path.stem})
+    for row in read(EVIDENCE / "limit-alignment" / "points.csv"):
+        if (row["solver"] == "complete" and row["stable"] == "True"
+                and row["limit_trim"] == "0.9" and row["input_position"] == "0.5"):
+            row["r44_ohm"] = 200
+            key = tuple(row[k] for k in ("pair","mode","r44_ohm","input_position","ceiling_mark","input_dbu"))
+            curves[key] = {**row, "origin": "limit-alignment-0.9"}
     write("curves.csv", ("pair","mode","r44_ohm","input_position","ceiling_mark","input_dbu",
                          "a1_gain_db","out_dbu","stable","origin"), curves.values())
     harmonics = []
@@ -81,7 +87,10 @@ def main():
     harmonics.extend(limit.values())
     write("harmonics.csv", ("pair","mode","r44_ohm","hz","input_dbu","gain_db","phase_deg","a1_gain_db","thd_k2_k20_pct",
                             *(f"k{k}_dbc" for k in range(2,21)), "origin"), harmonics)
-    write("release.csv", ("pair","r44_ohm","hz","release","gain_t63_2_ms","origin"), releases)
+    for row in read(summaries / "release" / "summary.csv"):
+        if row["solver"] == "complete" and row["gain_t63_2_ms"]:
+            releases.append({**row, "r44_ohm": 200, "input_position": .9, "origin": "release"})
+    write("release.csv", ("pair","r44_ohm","hz","release","input_position","gain_t63_2_ms","origin"), releases)
     attacks = {}
     paths = [(summaries / name / "summary.csv", .9) for name in ("attack-final", "attack-limit")]
     paths.extend((EVIDENCE / name / "summary.csv", .5) for name in
