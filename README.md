@@ -71,3 +71,18 @@ python3 spice/gain_law.py --pair 2520/2520 --mode L --subset alignment --levels 
 ```
 
 [Broader gain-law, trim and detector-control run](https://github.com/jerrykilgore8995-dotcom/525/actions/runs/44255132690)
+
+## Compress Mod ratios
+
+The [Mod control design](GUI.md#mod-ratios) adds a toggle outside the faceplate and makes the Compress ratio label cycle 2:1, 4:1, 8:1 and 12:1. The [native mapping](dsp/CompressRatio.h) identifies the reference circuit for each setting. The fixture changes R44 in the A3 negative-feedback return in Compress. Existing Limit and OFF use the stock resistance. With the default resistance, the old and new C, L and OFF AC trace files compared byte for byte.
+
+The [measured calibration points](reference/525c-mod-ratios.csv) use ngspice 44.2, the 2520 audio and detector models, the AP2623-ratio T2 candidate, provisional T1, IN 50%, OUT 75%, Ceiling 16, D-S off, release 00, 150 Ω source and 10 kΩ load. Each slope is a fit over −20, −18 and −16 dBu at 1 kHz, after stepped plateaus of 320 ms with a 20 ms ramp, at a 5 µs maximum solver step.
+
+| Mod label | R44 | Fitted ratio |
+| --- | ---: | ---: |
+| 2:1 | 200 Ω | 2.04:1 |
+| 4:1 | 68 Ω | 4.15:1 |
+| 8:1 | 30 Ω | 8.17:1 |
+| 12:1 | 20 Ω | 11.73:1 |
+
+The ratios are local slopes, with threshold and curvature changing along with R44. The [Mod characterization workflow](.github/workflows/vintage-ratio-mod.yml) measures the resulting curves across IN and Ceiling and records phase, distortion, attack and release for each ratio with both amplifier pairings. The Windows editor and the reduced compressor using these curves are still pending.

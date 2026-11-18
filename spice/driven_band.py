@@ -22,13 +22,13 @@ def measure(args, case):
     name = f"{amp}-{detector}-{args.mode}-{args.load}-{hz}Hz-{level:+}dBu-ds{deess}"
     status, data = run_fixture(args, name, [
         "--opamp", amp, "--detector-opamp", detector, "--mode", args.mode,
-        "--input", ".9", "--output", ".75", "--ceiling", "8", "--deess", str(deess),
+        "--input", str(args.input_position), "--comp-r44", str(args.comp_r44), "--output", ".75", "--ceiling", "8", "--deess", str(deess),
         "--source", "150", "--load", str(args.load), "--transient", "--dbu", str(level),
         "--hz", str(hz), "--max-step", str(step), "--seconds", str(end),
     ])
     row = {"id": name, "solver": status, "pair": args.pair, "mode": args.mode,
            "load_ohm": args.load, "input_dbu": level, "hz": hz,
-           "deess": deess, "max_step_s": step, "analysis_cycles": 12,
+           "deess": deess, "input_position": args.input_position, "r44_ohm": args.comp_r44, "max_step_s": step, "analysis_cycles": 12,
            "detector_transformer": args.detector_transformer}
     return {**row, **tonal_summary(data, seconds=end, tone_hz=hz)} if data is not None else row
 
@@ -37,6 +37,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pair", choices=PAIRS, required=True)
     parser.add_argument("--mode", choices=MODES, required=True)
+    parser.add_argument("--input-position", type=float, default=.9)
+    parser.add_argument("--comp-r44", type=float, default=200)
     parser.add_argument("--load", choices=(600, 10000), type=int, default=10000)
     parser.add_argument("--hz", choices=FREQUENCIES, type=int, nargs="+", default=FREQUENCIES)
     parser.add_argument("--output", type=lambda p: Path(p).resolve(), required=True)

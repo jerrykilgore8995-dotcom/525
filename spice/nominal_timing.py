@@ -44,7 +44,7 @@ def release_ladder(path):
 def render(args, dest, raw, start, stop, end, step, release, hz, phase, drive):
     amp, detector = args.pair.split("/")
     parameters = ["--opamp", amp, "--detector-opamp", detector, "--mode", args.mode,
-                  "--input", ".9", "--ceiling", "8", "--detector-transformer", args.winding,
+                  "--input", str(args.input_position), "--comp-r44", str(args.comp_r44), "--ceiling", "8", "--detector-transformer", args.winding,
                   "--release-override-trim", str(args.override), "--release", release,
                   "--hz", str(hz), "--transient", "--dbu", str(INPUT_DBU),
                   "--burst-dbu", str(drive), "--burst-start", str(start),
@@ -123,7 +123,8 @@ def measure(args, case):
     status, data = render(args, dest, raw, start, stop, end, step, setting, hz, phase, drive)
     row = {"id": name, "pair": args.pair, "mode": args.mode, "detector": args.winding,
            "release": setting, "step_phase_deg": phase, "hz": hz, "max_step_s": step,
-           "quiet_dbu": INPUT_DBU, "drive_dbu": drive,
+           "quiet_dbu": INPUT_DBU, "drive_dbu": drive, "r44_ohm": args.comp_r44,
+           "input_position": args.input_position,
            "release_override": args.override, "solver": status}
     if data is None:
         return row
@@ -154,6 +155,8 @@ def main():
     parser.add_argument("--pair", choices=PAIRS, default="2520/2520")
     parser.add_argument("--winding", choices=tuple(DETECTOR_TURNS), default="ap2623")
     parser.add_argument("--override", type=float, default=.5)
+    parser.add_argument("--input-position", type=float, default=.9)
+    parser.add_argument("--comp-r44", type=float, default=200)
     parser.add_argument("--output", type=lambda p: Path(p).resolve(), required=True)
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--ngspice", default="ngspice")

@@ -9,6 +9,7 @@ permissions:
   contents: read
 jobs:
   resistor:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     container: debian:13.6-slim
     strategy:
@@ -34,5 +35,43 @@ jobs:
         if: always()
         with:
           name: 525C-Mod-${{ matrix.amp }}-${{ matrix.group.id }}
+          path: evidence/
+          if-no-files-found: error
+  candidates:
+    runs-on: ubuntu-24.04
+    container: debian:13.6-slim
+    strategy:
+      fail-fast: false
+      matrix:
+        amp: [2520, 990]
+        resistance: [200, 68, 30, 20]
+        metric: [curves, harmonics, attack, release]
+    steps:
+      - run: |
+          apt-get update
+          apt-get install --yes --no-install-recommends ca-certificates git ngspice=44.2+ds-1 python3 python3-numpy
+      - uses: actions/checkout@v4
+      - name: Characterize selectable Compress ratios
+        env:
+          AMP: ${{ matrix.amp }}
+          RESISTANCE: ${{ matrix.resistance }}
+          METRIC: ${{ matrix.metric }}
+          OPENBLAS_NUM_THREADS: '1'
+        run: |
+          case "$METRIC" in
+            curves)
+              python3 spice/ratio_mod.py --pair "$AMP/2520" --resistors "$RESISTANCE" --input .25 .5 .75 --ceiling 12 16 20 --levels -40 -24 -20 -18 -16 -12 -6 0 4 --hold .32 --step 5e-6 --timeout 240 --workers 2 --output evidence
+              ;;
+            harmonics)
+              python3 spice/driven_band.py --pair "$AMP/2520" --mode C --input-position .5 --comp-r44 "$RESISTANCE" --hz 100 1000 5000 10000 --output evidence
+              ;;
+            attack|release)
+              python3 spice/nominal_timing.py "$METRIC" --pair "$AMP/2520" --input-position .5 --comp-r44 "$RESISTANCE" --output evidence
+              ;;
+          esac
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: 525C-Mod-${{ matrix.amp }}-${{ matrix.resistance }}-${{ matrix.metric }}
           path: evidence/
           if-no-files-found: error
