@@ -54,8 +54,10 @@ def render(args, dest, raw, start, stop, end, step, release, hz, phase, drive):
     if phase:
         # Smooth the amplitude discontinuity at the crest with a 1 us PWL rise.
         quiet, loud = (.775 * math.sqrt(2) * 10**(level / 20) for level in (INPUT_DBU, drive))
-        source = (f"VAMP amp 0 PWL(0 {quiet} {start} {quiet} {start+1e-6} {loud} "
-                  f"{stop} {loud} {stop+1e-6} {quiet})\nBINPUT src 0 V=v(amp)*v(carrier)")
+        # A crest-down transition is unnecessary for an attack measurement.
+        # Hold the loud plateau to the end of the attack-only trace.
+        source = (f"VAMP amp 0 PWL(0 {quiet} {start} {quiet} {start+1e-6} {loud})\n"
+                  "BINPUT src 0 V=v(amp)*v(carrier)")
         lines = []
         for line in deck.splitlines():
             if line.startswith("BINPUT "):
@@ -167,6 +169,9 @@ def main():
     valid = sum(r["solver"] in ("complete", "insufficient_gr") for r in rows)
     print(f"{args.kind} {args.pair} {args.mode}: {valid}/{len(rows)} traces measured")
     if valid != len(rows):
+        for row in rows:
+            if row["solver"] not in ("complete", "insufficient_gr"):
+                print(f'{row["id"]}: {row["solver"]}')
         raise SystemExit(1)
 
 
