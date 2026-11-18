@@ -27,3 +27,11 @@ target_compile_features(Vintage525 PRIVATE cxx_std_20)
 target_compile_definitions(Vintage525 PUBLIC JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_VST3_CAN_REPLACE_VST2=0)
 target_link_libraries(Vintage525 PRIVATE juce::juce_audio_processors juce::juce_dsp
     juce::juce_recommended_config_flags juce::juce_recommended_warning_flags)
+
+if(WIN32)
+    juce_add_console_app(Measure525 PRODUCT_NAME "Measure525")
+    target_sources(Measure525 PRIVATE calibration/measure_vst3.cpp)
+    target_compile_features(Measure525 PRIVATE cxx_std_20)
+    target_compile_definitions(Measure525 PRIVATE JUCE_PLUGINHOST_VST3=1 JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
+    target_link_libraries(Measure525 PRIVATE juce::juce_audio_processors juce::juce_recommended_config_flags)
+endif()

@@ -16,7 +16,7 @@ jobs:
   windows:
     name: Windows x64 VST3
     runs-on: windows-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - name: Configure
@@ -32,8 +32,19 @@ jobs:
           Get-FileHash $binary -Algorithm SHA256
           New-Item -Type Directory dist
           Copy-Item -Recurse $bundle dist/
+          Get-FileHash $binary -Algorithm SHA256 | Select-Object -ExpandProperty Hash | Set-Content dist/SHA256.txt
+          Copy-Item calibration/INSTALL.txt dist/
       - uses: actions/upload-artifact@v4
         with:
           name: 525-0.1-Windows-x64-VST3-Preview
           path: dist/
+          if-no-files-found: error
+      - name: Build VST3 measurement host
+        run: cmake --build build --config Release --target Measure525 --parallel 2
+      - name: Measure the compiled bundle
+        run: build/Measure525_artefacts/Release/Measure525.exe dist/525.vst3 measurements
+      - uses: actions/upload-artifact@v4
+        with:
+          name: 525-binary-measurements
+          path: measurements/
           if-no-files-found: error

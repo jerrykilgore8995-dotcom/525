@@ -85,7 +85,7 @@ The [measured calibration points](reference/525c-mod-ratios.csv) use ngspice 44.
 | 8:1 | 30 Ω | 8.17:1 | 8.17:1 |
 | 12:1 | 20 Ω | 11.73:1 | 11.73:1 |
 
-The ratios are local slopes, with threshold and curvature changing along with R44. The [Mod characterization workflow](.github/workflows/vintage-ratio-mod.yml) measures the resulting curves across IN and Ceiling and records phase, distortion, attack and release for each ratio with both amplifier pairings. The Windows editor and the reduced compressor using these curves are still pending.
+The ratios are local slopes, with threshold and curvature changing along with R44. The [Mod characterization workflow](.github/workflows/vintage-ratio-mod.yml) measures the resulting curves across IN and Ceiling and records phase, distortion, attack and release for each ratio with both amplifier pairings. The Windows preview uses the measured curves at covered settings and interpolates outside that coverage.
 
 The [8:1 harmonic measurements](reference/525c-mod-8-harmonics.csv) capture K2–K20 and fundamental phase. With all-2520, D-S off and −18 dBu, THD is 0.1111%, 0.01936%, 0.02174%, and 0.02424% at 100 Hz, 1 kHz, 5 kHz, and 10 kHz. These are analog bandwidth figures under the measured drive conditions. [Extended characterization results](https://github.com/jerrykilgore8995-dotcom/525/actions/runs/44256694480)
 
@@ -94,3 +94,11 @@ The [coverage ledger](reference/COVERAGE.md) tracks the exact pot matrix, switch
 ## Native A2 output-amplifier stage
 
 [OutputAmplifier.h](dsp/OutputAmplifier.h) implements the linear A2 feedback response using two pole-zero sections derived from R40/R41/C7/C8. No SPICE solver runs in this stage. The [comparison](spice/check_output_amplifier.py) executes the compiled sample processor and measures it against the complete SPICE circuit from A2+ to the transformer primary. At 88.2 kHz internal rate, worst-case deviation across 100 points from 20 Hz to 20 kHz was 0.029 dB and 1.36° over both amplifier pairings and 600 Ω/10 kΩ loads. At 96 kHz the corresponding errors were 0.023 dB and 1.11°. The 44.1 kHz direct implementation missed the target at about 1.14 dB and 21.48°. These tests cover the linear amplifier stage. The future oversampling filters, saturation, transformer, detector, and assembled Windows plug-in require their own parity tests.
+
+## Windows 525 VST3 preview
+
+The Windows x64 workflow packages the native JUCE VST3 and its SHA-256. It also runs a separate host executable against the compiled bundle to compare 100 Hz, 1 kHz, 5 kHz, and 10 kHz at the measured drive levels and capture the editor at three scales. The harmonic comparison uses the same harmonic orders below 22.05 kHz on both sides. Test tone scaling uses 0 dBFS peak = +22 dBu for this preview. The test compares Compress profiles at IN 50%, OUT 75%, Ceiling 16, D-S off, release 00, and the 10 kΩ reference load.
+
+The plug-in runs native reduced-order processing with 2× internal oversampling and latency-compensated dry bypass. Mono uses one signal path. Stereo uses two independent paths and two gain reduction readings on the shared panel. Attack uses measured 10–90% anchors where available. Release uses the measured 63.2% points with frequency interpolation. These parameters require separate end-to-end timing verification.
+
+The 5–10% target remains open across the full control grid. The preview interpolates from sparse pot and level measurements. The measured harmonic tables provide amplitudes. Harmonic phase, independent Limit spectra, transformer saturation and load behavior, and control combinations outside the measured grid remain incomplete. Whole-path gain, phase and timing data must be verified before this build is considered final.

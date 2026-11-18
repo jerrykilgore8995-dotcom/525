@@ -22,7 +22,6 @@ public:
     explicit Preview(double sampleRate = 88200, double nyquist = 22050)
         : rate(sampleRate), hostNyquist(nyquist), a2(sampleRate)
     {
-        attack = coefficient(6.83e-6);
         dc = coefficient(.08);
         low = coefficient(.0015);
         controls.ceiling = -1;
@@ -41,10 +40,10 @@ public:
         const auto currentTap = detectorDrive(next.input, next.ceiling, slot == 4);
         const auto referenceTap = detectorDrive(.5, 8, slot == 4);
         baseline = 25.09;
+        const auto shift = 20 * std::log10(std::max(1e-8, currentTap / referenceTap));
         const int availableAmp = hasGain(next.amp, slot) ? next.amp : 0;
         for (std::size_t n = 0; n < gainTable.size(); ++n) {
             const auto level = static_cast<double>(n) - 72;
-            const auto shift = 20 * std::log10(std::max(1e-8, currentTap / referenceTap));
             gainTable[n] = std::clamp(curve(availableAmp, slot, level + shift), 0.0, baseline);
         }
         const int releaseSlot = slot == 4 ? 0 : slot;
@@ -58,6 +57,16 @@ public:
                     found = &r;
             releaseSeconds[n] = found == nullptr ? fallback[next.release] : found->seconds;
         }
+        for (std::size_t i = 0; i < attackCoefficients.size(); ++i) {
+            const auto drive = i == 0 ? -18 : 4;
+            const data::AttackPoint* found = nullptr;
+            for (const auto& point : data::attack)
+                if (point.slot == slot && point.level == drive &&
+                    (found == nullptr || point.amp == next.amp))
+                    found = &point;
+            const auto span = found == nullptr ? 15.0 : found->spanUs;
+            attackCoefficients[i] = coefficient(span * 1e-6 / std::log(9.0));
+        }
         refreshHarmonics(-18, 1000);
         refreshRelease(1000);
     }
@@ -68,10 +77,13 @@ public:
         if (sinceCrossing < rate)
             ++sinceCrossing;
         if (previousSource <= 0 && x > 0) {
-            if (sinceCrossing >= 4 && sinceCrossing < rate / 20) {
-                frequency += .22 * (rate / sinceCrossing - frequency);
-                period = sinceCrossing;
+            const auto crossing = x / (x - previousSource);
+            const auto samples = sinceCrossing + previousCrossing - crossing;
+            if (samples >= 4 && samples < rate / 20) {
+                frequency += .12 * (rate / samples - frequency);
+                period = static_cast<int>(std::ceil(samples));
             }
+            previousCrossing = crossing;
             sinceCrossing = 0;
         }
         previousSource = x;
@@ -96,7 +108,13 @@ public:
         const auto lower = static_cast<int>(index);
         const auto upper = std::min(lower+1, static_cast<int>(gainTable.size()-1));
         const auto target = gainTable[lower] + (gainTable[upper]-gainTable[lower])*(index-lower);
-        gainDb = target + (target < gainDb ? attack : releaseCoeff) * (gainDb - target);
+        if (target < gainDb) {
+            const auto drive = std::clamp((level + 18) / 22, 0.0, 1.0);
+            const auto coeff = attackCoefficients[0] + drive * (attackCoefficients[1] - attackCoefficients[0]);
+            gainDb = target + coeff * (gainDb - target);
+        } else {
+            gainDb = target + releaseCoeff * (gainDb - target);
+        }
         const auto gain = std::exp(gainDb * logDb);
         const auto stageIn = x * (120.0 / 10450.0);
         // C1 in series with the gate-controlled FET attenuates the extra AC gain.
@@ -119,7 +137,7 @@ public:
             }
             // Weight the waveform by the corresponding output peak, keeping
             // harmonics out of the floor of the model's peak detector.
-            out += harmonics * peak * gain * (120.0 / 10450.0) * harmonicOutputGain;
+            out += harmonics * peak * gain * (120.0 / 10450.0) * harmonicOutputGain * harmonicResponse;
         }
         outDC = out + dc * (outDC - out);
         return static_cast<float>(out-outDC);
@@ -160,7 +178,7 @@ private:
                 hi = &p;
         }
         if (lo == nullptr)
-            return hi == nullptr ? 25.09 : hi->gain;
+            return hi == nullptr ? 25.09 : std::min(25.09, hi->gain + .25*(hi->level-level));
         if (hi == nullptr)
             return std::max(0.0, lo->gain - std::max(0.0, level-lo->level)*.9);
         if (lo->level == hi->level)
@@ -181,22 +199,45 @@ private:
         if (controls.mode > 1)
             return;
         const auto hslot = slot == 4 ? 0 : slot;
-        double covered = 0;
-        for (const auto& r : data::harmonics) {
-            if (r.slot != hslot || r.amp != controls.amp)
-                continue;
-            const auto distance = (level-r.level) / 12;
-            const auto frequencyDistance = std::log2(std::max(20.0,hz)/r.hz);
-            const auto weight = 1 / (.12 + distance*distance + frequencyDistance*frequencyDistance);
-            covered += weight;
-            for (std::size_t h = 0; h < magnitude.size(); ++h)
-                magnitude[h] += weight * r.magnitude[h];
-        }
-        if (covered > 0)
-            for (std::size_t h = 0; h < magnitude.size(); ++h) {
-                const auto taper = std::clamp((hostNyquist-(h+2)*hz)/(hostNyquist*.15),0.0,1.0);
-                magnitude[h] *= taper / covered;
+        const auto profile = [this, hslot, level](int frequencyHz) {
+            const data::HarmonicPoint* lo = nullptr;
+            const data::HarmonicPoint* hi = nullptr;
+            for (const auto& row : data::harmonics) {
+                if (row.amp != controls.amp || row.slot != hslot || row.hz != frequencyHz)
+                    continue;
+                if (row.level <= level && (lo == nullptr || row.level > lo->level))
+                    lo = &row;
+                if (row.level >= level && (hi == nullptr || row.level < hi->level))
+                    hi = &row;
             }
+            if (lo == nullptr)
+                lo = hi;
+            if (hi == nullptr)
+                hi = lo;
+            std::array<double, 19> result{};
+            if (lo != nullptr) {
+                const auto blend = lo == hi ? 0 : (level - lo->level) / (hi->level - lo->level);
+                for (std::size_t h = 0; h < result.size(); ++h)
+                    result[h] = lo->magnitude[h] + blend * (hi->magnitude[h] - lo->magnitude[h]);
+            }
+            return result;
+        };
+        constexpr std::array frequencies{100, 1000, 5000, 10000};
+        const auto high = std::lower_bound(frequencies.begin()+1, frequencies.end(), hz);
+        const auto loHz = *(high-1);
+        const auto hiHz = high == frequencies.end() ? frequencies.back() : *high;
+        const auto lo = profile(loHz);
+        const auto hi = profile(hiHz);
+        const auto blend = loHz == hiHz ? 0 : std::clamp(std::log(hz/loHz)/std::log(double(hiHz)/loHz), 0.0, 1.0);
+        const auto omega = 2 * 3.14159265358979323846 * hz / rate;
+        for (std::size_t h = 0; h < magnitude.size(); ++h) {
+            const auto taper = std::clamp((hostNyquist-(h+2)*hz)/(hostNyquist*.0125), 0.0, 1.0);
+            magnitude[h] = taper * (lo[h] + blend * (hi[h] - lo[h]));
+        }
+        // Normalize the Chebyshev terms to the linear output at this frequency.
+        const auto network = std::hypot(1 - std::cos(omega), std::sin(omega));
+        const auto c = OutputCeiling::calculate(controls.output, controls.ceiling, rate);
+        harmonicResponse = network / std::hypot(1 - c.lowPole * std::cos(omega), c.lowPole * std::sin(omega));
     }
 
     double rate, hostNyquist;
@@ -205,9 +246,9 @@ private:
     Controls controls;
     std::array<double, 96> gainTable{};
     std::array<double, 19> magnitude{};
-    std::array<double, 2> releaseSeconds{};
-    double attack{}, dc{}, low{}, releaseCoeff{}, peakDecay{}, baseline{};
-    double peak{}, gainDb = 25.09, previousSource{}, frequency = 1000;
+    std::array<double, 2> releaseSeconds{}, attackCoefficients{};
+    double dc{}, low{}, releaseCoeff{}, peakDecay{}, baseline{}, harmonicResponse{1};
+    double peak{}, gainDb = 25.09, previousSource{}, previousCrossing{}, frequency = 1000;
     double inputLow{}, stageLow{}, outDC{}, harmonicOutputGain{};
     int sinceCrossing{}, period = 88, hold{}, controlsCounter{}, slot{};
 };

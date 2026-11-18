@@ -62,9 +62,25 @@ def main():
                 harmonics.append({**row, "origin": path.stem})
             elif kind == "release" and row["gain_t63_2_ms"]:
                 releases.append({**row, "origin": path.stem})
-    write("harmonics.csv", ("pair","r44_ohm","hz","input_dbu","thd_k2_k20_pct",
+    write("harmonics.csv", ("pair","r44_ohm","hz","input_dbu","gain_db","phase_deg","thd_k2_k20_pct",
                             *(f"k{k}_dbc" for k in range(2,21)), "origin"), harmonics)
     write("release.csv", ("pair","r44_ohm","hz","release","gain_t63_2_ms","origin"), releases)
+    attacks = {}
+    paths = [(summaries / name / "summary.csv", .9) for name in ("attack-final", "attack-limit")]
+    paths.extend((EVIDENCE / name / "summary.csv", .5) for name in
+                 ("mod-8-attack", "mod-12-retry", "mod-finer-20", "mod-finer-30"))
+    for path, default_input in paths:
+        for row in read(path):
+            if row["solver"] != "complete" or not row["crest_10_90_us"]:
+                continue
+            row.setdefault("input_position", default_input)
+            row.setdefault("r44_ohm", 200)
+            key = (row["pair"], row["mode"], float(row["r44_ohm"]), float(row["drive_dbu"]))
+            previous = attacks.get(key)
+            if previous is None or float(row["max_step_s"]) < float(previous["max_step_s"]):
+                attacks[key] = {**row, "origin": path.parent.name}
+    write("attack.csv", ("pair","mode","r44_ohm","input_position","drive_dbu",
+                         "crest_t10_us","crest_10_90_us","max_step_s","origin"), attacks.values())
     generate(ROOT / "calibration")
 
 

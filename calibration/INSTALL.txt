@@ -1,0 +1,13 @@
+525 0.1 Windows x64 preview
+
+1. Close your DAW.
+2. Extract this ZIP.
+3. Copy the entire 525.vst3 folder into C:\Program Files\Common Files\VST3.
+4. Open your DAW and rescan VST3 plug-ins.
+
+The header selects the 2520 or 990 audio amplifier profile. Enable Mod and
+click the ratio label in Compress to cycle 2:1, 4:1, 8:1 and 12:1.
+Use BYP for dry audio. OFF retains the modeled audio path with gain reduction off.
+
+This preview uses vintage 525C SPICE characterization. Some control regions
+and timing, phase and distortion conditions are still being verified.
