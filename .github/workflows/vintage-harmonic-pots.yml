@@ -1,0 +1,89 @@
+name: 525C harmonic pot grid
+on:
+  push:
+    paths:
+      - .github/workflows/vintage-harmonic-pots.yml
+  workflow_dispatch:
+    inputs:
+      dbu:
+        description: Comma-separated drive levels in dBu
+        default: '-30,-18,4,10,18,24'
+      hz:
+        description: Comma-separated tone frequencies in Hz
+        default: '100,1000,5000,10000'
+      pair:
+        description: Audio and detector amplifiers
+        default: '2520/2520'
+      slot:
+        description: 0–3 Compress ratios, 4 Limit, 5 OFF
+        default: '0'
+      ceiling:
+        description: Ceiling detent index 0–10
+        default: '8'
+      release:
+        description: Release bit pair 00, 10, 01 or 11
+        default: '00'
+      ds:
+        description: De-ess state 0 or 1
+        default: '0'
+
+permissions:
+  contents: read
+
+jobs:
+  grid:
+    runs-on: ubuntu-24.04
+    container: debian:13.6-slim
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: 11
+      matrix:
+        input: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+    env:
+      OPENBLAS_NUM_THREADS: 1
+      LEVELS: ${{ inputs.dbu || '4,10,18,24,-18,-30' }}
+      FREQUENCIES: ${{ inputs.hz || '1000,100,5000,10000' }}
+      PAIR: ${{ inputs.pair || '2520/2520' }}
+      SLOT: ${{ inputs.slot || '0' }}
+      CEILING: ${{ inputs.ceiling || '8' }}
+      RELEASE: ${{ inputs.release || '00' }}
+      DS: ${{ inputs.ds || '0' }}
+      IN_POSITION: ${{ matrix.input }}
+    steps:
+      - run: |
+          apt-get update
+          apt-get install --yes --no-install-recommends ca-certificates git ngspice=44.2+ds-1 python3 python3-numpy
+      - uses: actions/checkout@v4
+      - name: Measure one IN position across all eleven OUT positions
+        shell: bash
+        run: |
+          status=0
+          run_tones() {
+            local freq level subdir
+            for freq in ${FREQUENCIES//,/ }; do
+              for level in ${LEVELS//,/ }; do
+                subdir="measurements/$1/${freq}Hz-${level}dBu"
+                python3 spice/harmonic_pots.py --input "$IN_POSITION" --hz "$freq" --dbu "$level" \
+                  --pair "$PAIR" --slot "$SLOT" --ceiling "$CEILING" --release "$RELEASE" --ds "$DS" \
+                  --output "$subdir" "${@:2}" || status=1
+                find "$subdir" -name burst.dat -delete
+              done
+            done
+          }
+          run_tones anchors
+          if (( IN_POSITION < 100 )); then
+            IN_POSITION=$((IN_POSITION + 5))
+            run_tones holdouts --outs 5 15 25 35 45 55 65 75 85 95
+          fi
+          exit "$status"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: 525C-harmonics-IN-${{ matrix.input }}
+          path: |
+            measurements/**/harmonic-pots.csv
+            measurements/**/matrix.json
+            measurements/**/result.json
+            measurements/**/fixture.cir
+          if-no-files-found: error
